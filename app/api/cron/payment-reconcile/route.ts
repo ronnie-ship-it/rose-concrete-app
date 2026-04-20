@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
 
   // Apply updates sequentially — small batch, no parallelism needed.
   const applied: string[] = [];
+  const newlyPaid: Array<{ id: string; amount: number }> = [];
   const failed: Array<{ id: string; error: string }> = [];
   for (const u of result.updates) {
     const { error: upErr } = await supabase
@@ -93,6 +94,71 @@ export async function GET(request: NextRequest) {
       failed.push({ id: u.milestone_id, error: upErr.message });
     } else {
       applied.push(u.milestone_id);
+      if (u.status === "paid") {
+        newlyPaid.push({
+          id: u.milestone_id,
+          amount: Number(u.qbo_paid_amount ?? 0),
+        });
+      }
+    }
+  }
+
+  // Fire in-app notifications + push for each newly paid milestone.
+  if (newlyPaid.length > 0) {
+    try {
+      const { notifyUsers } = await import("@/lib/notify");
+      const { data: officers } = await supabase
+        .from("profiles")
+        .select("id")
+        .in("role", ["admin", "office"]);
+      const officerIds = (officers ?? []).map((o) => o.id as string);
+
+      // Enrich: look up each milestone's project + client for the
+      // notification body.
+      const { data: details } = await supabase
+        .from("payment_milestones")
+        .select(
+          "id, label, schedule:payment_schedules!inner(project:projects!inner(id, name, client:clients(name)))",
+        )
+        .in(
+          "id",
+          newlyPaid.map((p) => p.id),
+        );
+      for (const np of newlyPaid) {
+        const d = (details ?? []).find((r) => r.id === np.id);
+        const schedule = d?.schedule
+          ? (Array.isArray(d.schedule) ? d.schedule[0] : d.schedule)
+          : null;
+        const project = schedule?.project
+          ? (Array.isArray(schedule.project)
+              ? schedule.project[0]
+              : schedule.project)
+          : null;
+        const client = project?.client
+          ? (Array.isArray(project.client)
+              ? project.client[0]
+              : project.client)
+          : null;
+        const label = (d?.label as string | null) ?? "Milestone";
+        const projectName = (project?.name as string | null) ?? "project";
+        const clientName = (client?.name as string | null) ?? "customer";
+        await notifyUsers(
+          {
+            userIds: officerIds,
+            kind: "invoice_paid",
+            title: `💰 Payment received — $${np.amount.toLocaleString()}`,
+            body: `${clientName} · ${projectName} · ${label}`,
+            link: project?.id
+              ? `/dashboard/projects/${project.id}#billing`
+              : "/dashboard/payments",
+            entity_type: "project",
+            entity_id: (project?.id as string | undefined) ?? null,
+          },
+          supabase,
+        );
+      }
+    } catch (err) {
+      console.warn("[reconcile] notify failed", err);
     }
   }
 

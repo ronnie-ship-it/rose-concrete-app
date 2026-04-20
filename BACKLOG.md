@@ -2,6 +2,144 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 15 (2026-04-19, overnight)
+
+`npx tsc --noEmit` passes. **One new migration (041)** plus the
+unapplied ones from prior rounds. Run in Supabase in this order
+if any are outstanding:
+
+1-5. 034 → 038 (prior rounds, see earlier wake-up notes).
+6. **`migrations/039_cash_journal.sql`** (round 12).
+7. **`migrations/040_multi_tenant.sql`** (round 14, rewritten in
+   round 14.5 to be fully idempotent — safe to re-run).
+8. **`migrations/041_job_estimation.sql`** — new this round. Adds
+   `actual_hours_worked` to `project_phases`, creates
+   `job_phase_durations` + `job_total_estimates` views, adds
+   `compute_phase_durations(project_id)` helper and a
+   BEFORE-UPDATE trigger on `visit_time_entries` that refreshes
+   phase hours every time a crew member clocks out. Safe to
+   re-run.
+
+**Ronnie — things I need from you:**
+
+- Once you create the prod Vercel domain and point DNS, set
+  `NEXT_PUBLIC_APP_URL` in Vercel env to the real URL. Until
+  then the hardcoded fallback (`rose-concrete-app-v2.vercel.app`)
+  keeps magic links landing on the right host.
+- Supabase → Auth → URL Configuration → Site URL must match the
+  app URL (see DEPLOY.md §5). Redirect allowlist must include
+  `/auth/callback` on every host you use.
+
+### What shipped this round
+
+- **Vercel magic-link fix (hardcoded fallback).** `resolveAppUrl()`
+  now includes a fourth fallback step — if we're running on
+  Vercel (`VERCEL=1`) but `NEXT_PUBLIC_APP_URL`, request host,
+  and `VERCEL_URL` all fail to produce a usable origin, we use
+  the hardcoded preview URL so magic links don't silently land
+  on localhost.
+- **Job estimation intelligence.** Migration 041 + `lib/job-estimation.ts`
+  + `/dashboard/reports/job-estimation`. Rolls up completed jobs
+  by (service_type × sqft bucket) to answer "what should a 500sqft
+  stamped driveway cost / take?" Phase hours come from
+  `visit_time_entries` via a BEFORE-UPDATE trigger that re-sums
+  when a clock-out lands. Confidence scores (0-100%) shown next
+  to every row so Ronnie knows whether the average is backed by
+  enough jobs.
+- **Smart estimating on quote editor.** New
+  `<SmartEstimateChip>` component rendered on the quote detail
+  page. Pulls the matching historical bucket, compares to the
+  quote's grand total, and surfaces tone-coded chips:
+    - **green** = "In line with similar jobs"
+    - **amber** = "~25% above average"
+    - **red** = "~40% below average — check the scope"
+  Includes suggested price range (low / median / high), $/sqft,
+  estimated days, and a rationale line. Renders nothing when
+  there's no matching history yet.
+- **Crew home rewrite.** The Today screen is now thumb-first:
+    - Full-width cards with colored header strip (brand navy →
+      amber while clocked in → emerald when complete).
+    - Primary row = Google Maps navigation + "Call {first name}"
+      (two 56px-tall buttons side-by-side).
+    - Secondary row = Clock in/out + "On my way" with 3 preset
+      ETA buttons (15/30/45 min).
+    - Photo upload CTA is now the most prominent action on every
+      visit — 64px-tall, brand-blue, shows live "2/3" count and
+      flips emerald once the gate is satisfied.
+    - Mark complete button grows to min-h-12 with icon + label.
+  Every tap target is ≥44pt (iOS guideline); no more tiny chips.
+- **`On my way` auto-SMS with preset ETAs.** Open → pick 15/30/45
+  → sends via existing `sendOnMyWayAction`. Chip stays expanded
+  to show the confirmation (no reload needed).
+- **Photo reminder — second fire at 6pm PT.** The existing 4pm
+  cron now self-gates for TWO PT hours (16 + 18). The 6pm run
+  only nags crew who still have zero uploads — anyone actively
+  uploading gets skipped. Second reminder's body is firmer and
+  includes the job address so crew can't dismiss it. `vercel.json`
+  runs the cron at both 23:00 UTC (4pm PDT) and 01:00 UTC
+  (6pm PDT).
+- **In-app notifications** on quote approved, form signed, and
+  payment received (on top of job-completed which already fired
+  from round 12's completion flow). All route through the
+  existing `notifyUsers` helper so they also fire web pushes
+  when VAPID keys are configured.
+- **Daily morning summary.** New cron at
+  `/api/cron/morning-summary` fires 7am PT each day. Per-tenant:
+  counts today's visits + overdue invoices + unsigned customer
+  forms + cold leads (new status >24h) and sends one
+  notification to each office/admin user with the rollup as the
+  body. Skips tenants with zero items.
+- **Crew PWA offline mode.** `public/sw.js` rewritten:
+    - Precaches `/crew` + `/crew/schedule` + `/crew/upload` +
+      `/crew/form` on install.
+    - Stale-while-revalidate on `/crew/*` navigations — crew
+      opens the app without signal and sees yesterday's Today
+      screen; when signal comes back it refreshes in the
+      background.
+    - Cache-first for images and Next.js static chunks so
+      repeat visits are instant.
+    - Only intercepts GETs — POSTs / server actions always hit
+      the network so writes don't go stale.
+  Registered from `app/crew/sw-register.tsx` (mounted in the
+  crew layout) via `requestIdleCallback` so it doesn't fight the
+  initial render.
+- **Loading skeletons.** New `components/skeletons.tsx` with
+  `<SkeletonLine>` / `<SkeletonBlock>` / `<SkeletonCard>` /
+  `<SkeletonList>` / `<SkeletonTable>` / `<SkeletonPageHeader>`.
+  Applied to `app/dashboard/{projects,clients,quotes,schedule}/loading.tsx`
+  + `app/dashboard/reports/job-estimation/loading.tsx` +
+  `app/crew/loading.tsx`. First paint now shows the right shape
+  instead of a blank page during SSR.
+- **Job estimation link on Reports index** — primary action
+  button at the top of `/dashboard/reports`.
+
+### Deferred / not started
+
+- **Virtualized lists.** Current lists (clients, projects,
+  quotes) load 200 rows max via `.limit(200)`. Virtualization
+  (react-virtuoso / react-window) is a separate round once row
+  counts cross 500.
+- **Prefetch common navigation paths.** Next.js prefetches
+  `<Link>` hrefs by default on idle — the crew app already
+  benefits. Explicit `prefetch=true` hints for the dashboard
+  primary-nav links is a small follow-up.
+- **Swipe gestures on mobile.** The crew app is tap-only today.
+  Adding `react-use-gesture` for "swipe to mark done" is a
+  separate round.
+- **Offline write queue for crew app.** Today the service worker
+  serves stale reads offline but writes (clock in, photo
+  upload) still require signal. A background-sync queue that
+  replays pending uploads when the connection returns is a
+  separate round.
+- **Tenant-aware morning summary** — today counts overdue invoices
+  globally (no `tenant_id` on payment_milestones yet). If Rose
+  is the only paid tenant, this is cosmetic; add tenant scope
+  before the second tenant goes live.
+
+### Earlier wake-up notes kept below for history.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 14 (2026-04-19, overnight)
 
 `npx tsc --noEmit` passes. **One big new migration: 040** —

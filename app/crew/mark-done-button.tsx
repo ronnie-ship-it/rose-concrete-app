@@ -40,42 +40,33 @@ export function MarkDoneButton({
   const needed = Math.max(0, PHOTO_MIN - photoCount);
 
   return (
-    <div className="inline-flex flex-col">
+    <div className="flex flex-col">
       <button
         type="button"
         disabled={pending}
         onClick={click}
-        className={`rounded-md px-4 py-1.5 text-xs font-semibold text-white shadow-sm disabled:opacity-60 ${
-          enough
-            ? "bg-brand-600 hover:bg-brand-700"
-            : "bg-neutral-400 cursor-not-allowed"
+        className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-base font-bold text-white shadow-sm active:opacity-80 disabled:opacity-60 ${
+          enough ? "bg-brand-600" : "bg-neutral-400 cursor-not-allowed"
         }`}
       >
-        {pending ? "…" : t(lang, "Mark complete")}
+        <span className="text-lg">✓</span>
+        <span>{pending ? "…" : t(lang, "Mark complete")}</span>
       </button>
-      <span
-        className={`mt-1 text-[11px] ${
-          enough
-            ? "text-neutral-500"
-            : warn
-              ? "text-red-600"
-              : "text-amber-700"
-        }`}
-      >
-        {enough
-          ? `📷 ${photoCount} ${lang === "es" ? "fotos subidas" : "photos uploaded"} ✓`
-          : lang === "es"
-            ? `Necesitas ${needed} foto${needed === 1 ? "" : "s"} más (${photoCount}/${PHOTO_MIN}).`
-            : `Need ${needed} more photo${needed === 1 ? "" : "s"} (${photoCount}/${PHOTO_MIN}).`}
-        {!enough && projectId && (
-          <a
-            href={`/crew/upload?project_id=${projectId}`}
-            className="ml-1 font-semibold underline"
-          >
-            {t(lang, "Upload")} →
-          </a>
-        )}
-      </span>
+      {warn && !enough && (
+        <span className="mt-1 text-center text-[11px] font-semibold text-red-600">
+          {lang === "es"
+            ? `Necesitas ${needed} foto${needed === 1 ? "" : "s"} más`
+            : `Need ${needed} more photo${needed === 1 ? "" : "s"}`}
+          {projectId && (
+            <a
+              href={`/crew/upload?project_id=${projectId}`}
+              className="ml-1 underline"
+            >
+              {t(lang, "Upload")} →
+            </a>
+          )}
+        </span>
+      )}
     </div>
   );
 }

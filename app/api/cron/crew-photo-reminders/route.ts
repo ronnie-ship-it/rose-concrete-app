@@ -3,18 +3,19 @@ import { createClient } from "@supabase/supabase-js";
 import { getOpenPhoneAdapter, normalizePhone } from "@/lib/openphone";
 
 /**
- * Daily 4pm crew photo-upload reminder.
+ * Crew photo-upload reminders. Two fires per day:
  *
- * For every project that's `active` and has at least one crew member
- * assigned, fires an SMS to each crew member via OpenPhone asking them
- * to upload the day's photos. Writes one `crew_photo_reminders` row
- * per (project, user, day) so the project page can render compliance.
+ *   4pm PT — "Hey <name>, please upload today's photos for <project>."
+ *   6pm PT — SECOND reminder, ONLY to crew who still have zero uploads
+ *            since the 4pm fire. Skips anyone who started uploading.
  *
- * Cron runs this hourly; we only fire between 16:00 and 16:59 local
- * (San Diego = UTC-7 in April). Using a simple hour check instead of a
- * single-shot cron means we survive retries + time-zone drift without
- * double-firing — the reminders table's unique constraint prevents
- * dupes.
+ * This cron is invoked every hour from Vercel (see vercel.json). It
+ * self-gates on the Pacific hour so a stuck deploy / retries can't
+ * cause a double-fire at the same time-of-day.
+ *
+ * Writes one `crew_photo_reminders` row per fire so the project
+ * page can render compliance and we can see which crew members
+ * needed the second nudge.
  */
 
 export async function GET(request: NextRequest) {
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Tz gate — only fire if it's 4pm Pacific. Skip if the user forced
-  // `?run=1` during dev/testing.
+  // Tz gate — fire at 16 or 18 Pacific. First fire prompts, second
+  // fire only nags crew who still have zero uploads.
   const force = request.nextUrl.searchParams.get("run") === "1";
   const ptHour = Number(
     new Intl.DateTimeFormat("en-US", {
@@ -37,13 +38,17 @@ export async function GET(request: NextRequest) {
       hour12: false,
     }).format(new Date()),
   );
-  if (!force && ptHour !== 16) {
+  const isFirstRun = ptHour === 16;
+  const isSecondRun = ptHour === 18;
+  if (!force && !isFirstRun && !isSecondRun) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      reason: `hour=${ptHour} (not 16)`,
+      reason: `hour=${ptHour} (not 16 or 18)`,
     });
   }
+  // `?run=1` without specifying — default to first-run behaviour.
+  const runKind: "first" | "second" = isSecondRun ? "second" : "first";
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,16 +109,41 @@ export async function GET(request: NextRequest) {
     uploadsByKey.set(k, (uploadsByKey.get(k) ?? 0) + 1);
   }
 
-  // Skip users we've already reminded today.
+  // Already-sent map per fire. On the first (4pm) run we skip anyone
+  // already stamped with sent_at >= today. On the second (6pm) run
+  // we look for rows stamped today's 6pm hour to avoid double-firing
+  // on retry, and ALSO skip anyone whose uploads_at_send is currently
+  // > 0 (they're actively uploading, no second nag needed).
   const { data: alreadySent } = await supabase
     .from("crew_photo_reminders")
-    .select("project_id, user_id")
+    .select("project_id, user_id, sent_at")
     .gte("sent_at", `${todayIso}T00:00:00Z`);
-  const alreadySentKey = new Set(
-    (alreadySent ?? []).map(
-      (r) => `${r.project_id as string}::${r.user_id as string}`,
-    ),
+  const allTodaysReminders = (alreadySent ?? []) as Array<{
+    project_id: string;
+    user_id: string;
+    sent_at: string;
+  }>;
+  // For the first run: any reminder today means skip.
+  const firstRunSkipKey = new Set(
+    allTodaysReminders.map((r) => `${r.project_id}::${r.user_id}`),
   );
+  // For the second run: only skip if a reminder fired between 17:30-
+  // 18:30 PT already (prevents retry dupes within the same window).
+  // We also skip anyone whose first-run reminder saw them with uploads
+  // — they're already compliant, no need to re-nag.
+  const secondRunSkipKey = new Set<string>();
+  for (const r of allTodaysReminders) {
+    const hourPT = Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        hour12: false,
+      }).format(new Date(r.sent_at)),
+    );
+    if (hourPT >= 17 && hourPT <= 19) {
+      secondRunSkipKey.add(`${r.project_id}::${r.user_id}`);
+    }
+  }
 
   const adapter = getOpenPhoneAdapter();
   const results: Array<{
@@ -124,20 +154,41 @@ export async function GET(request: NextRequest) {
     error?: string;
   }> = [];
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+
   for (const project of projectList) {
+    const address = project.service_address ?? project.location ?? "";
     for (const m of project.members ?? []) {
       const uid = m.user_id;
-      if (alreadySentKey.has(uploadsKey(project.id, uid))) continue;
+      const skipKey = uploadsKey(project.id, uid);
+      if (runKind === "first" && firstRunSkipKey.has(skipKey)) continue;
+      if (runKind === "second") {
+        // Skip if already-sent in the 6pm window.
+        if (secondRunSkipKey.has(skipKey)) continue;
+        // Second-run nag is ONLY for crew who haven't uploaded yet.
+        const uploadsNow = uploadsByKey.get(skipKey) ?? 0;
+        if (uploadsNow > 0) continue;
+      }
+
       const crewMember = crewById.get(uid);
       if (!crewMember?.phone) continue;
       const phone = normalizePhone(crewMember.phone);
       if (!phone) continue;
       const first = (crewMember.full_name ?? "").split(/\s+/)[0] || "team";
-      const uploads = uploadsByKey.get(uploadsKey(project.id, uid)) ?? 0;
+      const uploads = uploadsByKey.get(skipKey) ?? 0;
+
+      // Per-run body:
+      //   first  — friendly nudge, tap-here link
+      //   second — firmer, includes address so they can't miss it
+      const uploadLink = `${appUrl}/crew/upload?project_id=${project.id}`;
       const body =
-        uploads === 0
-          ? `Hey ${first} — please upload today's photos from ${project.name} before you head out. Open the crew app: ${process.env.NEXT_PUBLIC_APP_URL ?? ""}/crew`
-          : `Hey ${first} — thanks for the ${uploads} photo${uploads === 1 ? "" : "s"} from ${project.name}. Make sure the rest are up before EOD.`;
+        runKind === "first"
+          ? uploads === 0
+            ? `Hey ${first} — please upload your photos for today on ${project.name}${address ? ` at ${address}` : ""}. Tap here: ${uploadLink}`
+            : `Hey ${first} — thanks for the ${uploads} photo${uploads === 1 ? "" : "s"} from ${project.name}. Make sure the rest are up before EOD.`
+          : // second run: firmer, only fires when uploads===0
+            `Hey ${first} — still no photos from ${project.name}${address ? ` (${address})` : ""} today. Please upload before heading home so the office isn't chasing you tomorrow: ${uploadLink}`;
+
       const res = await adapter.sendMessage(phone, body);
       await supabase.from("crew_photo_reminders").insert({
         project_id: project.id,
@@ -158,6 +209,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    run: runKind,
     projects: projectList.length,
     sent: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,

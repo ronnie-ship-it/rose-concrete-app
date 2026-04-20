@@ -60,19 +60,22 @@ export function ClockButton({
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className={`w-full rounded-lg px-4 py-3 text-base font-bold text-white shadow-sm disabled:opacity-60 ${
+        className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-lg px-4 text-base font-bold text-white shadow-sm active:opacity-80 disabled:opacity-60 ${
           isOpen
-            ? "bg-red-600 hover:bg-red-700"
-            : "bg-green-600 hover:bg-green-700"
+            ? "bg-red-600"
+            : "bg-green-600"
         }`}
       >
-        {pending
-          ? isOpen
-            ? `${t(lang, "Clock out")}…`
-            : `${t(lang, "Clock in")}…`
-          : isOpen
-          ? t(lang, "Clock out")
-          : t(lang, "Clock in")}
+        <span className="text-xl">{isOpen ? "⏱" : "🕑"}</span>
+        <span>
+          {pending
+            ? isOpen
+              ? `${t(lang, "Clock out")}…`
+              : `${t(lang, "Clock in")}…`
+            : isOpen
+              ? t(lang, "Clock out")
+              : t(lang, "Clock in")}
+        </span>
       </button>
       {state && !state.ok && (
         <p className="mt-1 text-xs text-red-600">{state.error}</p>

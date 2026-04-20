@@ -250,8 +250,30 @@ export async function acceptQuoteAction(
       },
       supabase,
     );
+
+    // In-app notification + push for office — "Jane approved her
+    // quote on Rotella Ct for $25,400". Separate from automations so
+    // it fires even when no rule matches.
+    const { notifyUsers } = await import("@/lib/notify");
+    const { data: officers } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("role", ["admin", "office"]);
+    await notifyUsers(
+      {
+        userIds: (officers ?? []).map((o) => o.id as string),
+        kind: "quote_approved",
+        title: `${c?.name ?? "A customer"} approved their quote`,
+        body: `$${acceptedTotal.toLocaleString()}${p?.name ? ` · ${p.name}` : ""}`,
+        link: `/dashboard/quotes/${quote.id}`,
+        entity_type: "quote",
+        entity_id: quote.id,
+        sticky: true,
+      },
+      supabase,
+    );
   } catch (err) {
-    console.error("[accept] automations dispatcher threw:", err);
+    console.error("[accept] automations + notify dispatcher threw:", err);
   }
 
   // Fire-and-forget DocuSign envelope. Silently no-ops unless the feature

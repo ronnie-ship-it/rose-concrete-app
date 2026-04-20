@@ -108,6 +108,38 @@ export async function submitCustomerFormAction(
 
   // Side effects per kind.
   const projectId = form.project_id as string;
+
+  // In-app notification for office on every form signature. Fires
+  // before the per-kind side effects so admins see the badge even if
+  // a downstream task insert fails.
+  try {
+    const { notifyUsers } = await import("@/lib/notify");
+    const { data: officers } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("role", ["admin", "office"]);
+    const labelByKind: Record<string, string> = {
+      demo_ack: "Demo acknowledgment signed",
+      pre_pour: "Pre-pour form signed",
+      completion: "Completion form signed",
+      custom: "Custom form signed",
+    };
+    await notifyUsers(
+      {
+        userIds: (officers ?? []).map((o) => o.id as string),
+        kind: "system",
+        title: labelByKind[form.kind as string] ?? "Customer form signed",
+        body: `Signed by ${trimmedName}`,
+        link: `/dashboard/projects/${projectId}`,
+        entity_type: "project",
+        entity_id: projectId,
+      },
+      supabase,
+    );
+  } catch (err) {
+    console.warn("[forms] notify failed", err);
+  }
+
   try {
     if (form.kind === "demo_ack") {
       await supabase

@@ -21,6 +21,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { loadAttachments } from "@/lib/attachments";
 import { CustomFieldsPanel } from "@/components/custom-fields/panel";
 import { loadCustomFieldsFor } from "@/lib/custom-fields";
+import { SmartEstimateChip } from "@/components/smart-estimate-chip";
 
 export const metadata = { title: "Quote — Rose Concrete" };
 
@@ -34,7 +35,7 @@ export default async function QuoteEditorPage({ params }: { params: Params }) {
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "*, project:projects(id, name, client:clients(id, name, email))"
+      "*, project:projects(id, name, service_type, sqft, client:clients(id, name, email))"
     )
     .eq("id", id)
     .single();
@@ -176,6 +177,15 @@ export default async function QuoteEditorPage({ params }: { params: Params }) {
               }>}
             />
           </section>
+
+          {/* Smart estimate — suggests price + flags outliers based
+              on completed jobs of the same service_type + sqft bucket.
+              Renders nothing when there's no history yet. */}
+          <SmartEstimateChip
+            serviceType={(project?.service_type as string | null) ?? null}
+            sqft={Number(project?.sqft ?? 0) || null}
+            proposedPrice={grandTotal}
+          />
 
           <section className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-neutral-500">

@@ -1,9 +1,18 @@
 "use client";
 
+/**
+ * "On my way" — full-width tap target that opens a small drawer with
+ * three preset ETAs (15 / 30 / 45 min). Crew taps once to open, once
+ * to pick an ETA. Sends an automatic SMS to the client via OpenPhone
+ * ("Hi Jane, Alex is on the way, ETA 25 min"). The chip remains
+ * expanded after send showing the "Sent ✓" confirmation.
+ */
 import { useState, useTransition } from "react";
 import { sendOnMyWayAction } from "@/app/dashboard/schedule/actions";
 import { t } from "@/lib/i18n";
 import type { LangPref } from "@/lib/preferences";
+
+const PRESET_ETAS = [15, 30, 45] as const;
 
 export function OnMyWayButton({
   visitId,
@@ -12,44 +21,75 @@ export function OnMyWayButton({
   visitId: string;
   lang?: LangPref;
 }) {
-  const [eta, setEta] = useState(20);
+  const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [sentEta, setSentEta] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  function send() {
+  function send(eta: number) {
     setErr(null);
-    setMsg(null);
     start(async () => {
       const res = await sendOnMyWayAction(visitId, eta);
       if (!res) return;
-      if (res.ok) setMsg(res.message);
-      else setErr(res.error);
+      if (res.ok) {
+        setSentEta(eta);
+        setOpen(false);
+      } else {
+        setErr(res.error);
+      }
     });
   }
 
-  return (
-    <div className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs">
-      <span className="text-neutral-600">{t(lang, "On my way")} —</span>
-      <input
-        type="number"
-        min={5}
-        max={240}
-        value={eta}
-        onChange={(e) => setEta(Math.max(5, Math.min(240, Number(e.target.value) || 20)))}
-        className="w-12 rounded border border-neutral-200 px-1 text-xs"
-      />
-      <span className="text-neutral-500">{t(lang, "min")}</span>
+  if (sentEta != null) {
+    return (
+      <div className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-emerald-100 px-4 text-sm font-semibold text-emerald-900">
+        <span className="text-lg">✓</span>
+        <span>
+          {t(lang, "On my way")} — {sentEta} {t(lang, "min")}
+        </span>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
       <button
         type="button"
-        disabled={pending}
-        onClick={send}
-        className="ml-1 rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white disabled:opacity-60"
+        onClick={() => setOpen(true)}
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-800 active:bg-neutral-50"
       >
-        {pending ? "…" : "Send"}
+        <span className="text-lg">🚗</span>
+        <span>{t(lang, "On my way")}</span>
       </button>
-      {msg && <span className="ml-1 text-[11px] text-emerald-700">{msg}</span>}
-      {err && <span className="ml-1 text-[11px] text-red-600">{err}</span>}
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-brand-200 bg-brand-50 p-3">
+      <p className="mb-2 text-xs font-semibold text-brand-900">
+        {t(lang, "On my way")} — {lang === "es" ? "Elige ETA" : "pick ETA"}
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {PRESET_ETAS.map((eta) => (
+          <button
+            key={eta}
+            type="button"
+            disabled={pending}
+            onClick={() => send(eta)}
+            className="min-h-12 rounded-md bg-emerald-600 text-sm font-bold text-white active:bg-emerald-700 disabled:opacity-50"
+          >
+            {eta} {t(lang, "min")}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="mt-2 w-full text-center text-xs text-neutral-500 underline"
+      >
+        {lang === "es" ? "Cancelar" : "Cancel"}
+      </button>
+      {err && <p className="mt-1 text-[11px] text-red-600">{err}</p>}
     </div>
   );
 }

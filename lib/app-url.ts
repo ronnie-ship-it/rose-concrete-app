@@ -2,28 +2,37 @@
  * Resolve the public URL of the app, preferring signals in this order:
  *
  *   1. `NEXT_PUBLIC_APP_URL` env var — explicit production override.
- *      Set this on Vercel to something like `https://app.<domain>`.
+ *      Set this on Vercel to `https://app.<domain>` once DNS is live.
  *
  *   2. Request headers — derive from `host` (or `x-forwarded-host`)
- *      + `x-forwarded-proto` when we're running in a route handler
- *      that has access to them. This is the fallback that saved the
- *      2026-04-19 magic-link bug: when NEXT_PUBLIC_APP_URL isn't set,
- *      Supabase's `emailRedirectTo` was defaulting to
- *      `http://localhost:3000/auth/callback`, which Supabase then
- *      rejected (not in the allowlist) and fell back to the Site URL
- *      (the marketing apex). Using the live request host avoids
- *      that trap entirely.
+ *      + `x-forwarded-proto`. This is the fallback that fixes the
+ *      magic-link bug: when NEXT_PUBLIC_APP_URL isn't set, Supabase's
+ *      `emailRedirectTo` was defaulting to `http://localhost:3000/...`
+ *      which Supabase rejected (not in the allowlist) and fell back
+ *      to Site URL (the marketing apex). Using the live request host
+ *      side-steps that trap.
  *
  *   3. Vercel's `VERCEL_URL` — works on preview deployments where
  *      custom domains aren't set.
  *
- *   4. `http://localhost:3000` — dev fallback.
+ *   4. `VERCEL_FALLBACK_URL` (or our hardcoded preview URL) — final
+ *      safety net so prod-like Vercel deploys never fall back to
+ *      localhost and trigger the magic-link loop again.
+ *
+ *   5. `http://localhost:3000` — dev fallback.
  *
  * Always call this from a server action / route handler that has
  * access to `headers()` — it'll pick the right origin without the
  * caller having to know anything about the host setup.
  */
 import { headers } from "next/headers";
+
+/**
+ * Hardcoded fallback URL so Vercel deploys that don't set
+ * NEXT_PUBLIC_APP_URL or VERCEL_URL still route correctly. Update
+ * this constant when the Vercel project moves to a new preview URL.
+ */
+const HARDCODED_VERCEL_URL = "https://rose-concrete-app-v2.vercel.app";
 
 export async function resolveAppUrl(): Promise<string> {
   // 1. Explicit env var wins.
@@ -56,11 +65,18 @@ export async function resolveAppUrl(): Promise<string> {
     // through to the next signal.
   }
 
-  // 3. Vercel preview deployments.
+  // 3. Vercel preview / production deployments.
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  // 4. Local dev default.
+  // 4. Running on Vercel (VERCEL=1) but no URL detected — use the
+  //    hardcoded fallback rather than localhost so production magic
+  //    links don't silently 404.
+  if (process.env.VERCEL) {
+    return HARDCODED_VERCEL_URL;
+  }
+
+  // 5. Local dev default.
   return "http://localhost:3000";
 }

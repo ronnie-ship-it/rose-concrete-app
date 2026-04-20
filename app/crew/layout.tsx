@@ -4,6 +4,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { LangToggle } from "@/components/lang-toggle";
 import { getLangPref } from "@/lib/preferences";
 import { t } from "@/lib/i18n";
+import { ServiceWorkerRegister } from "./sw-register";
 
 export default async function CrewLayout({
   children,
@@ -18,6 +19,7 @@ export default async function CrewLayout({
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20 dark:bg-brand-900">
+      <ServiceWorkerRegister />
       <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white dark:border-brand-700 dark:bg-brand-800">
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           <Link
