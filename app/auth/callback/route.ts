@@ -35,6 +35,13 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next");
 
+  // Diagnostic log so Vercel surfaces "callback received code on host X
+  // → forwarding / exchanging" in the Function Logs. Lets us see at a
+  // glance whether the catch-all + callback chain is firing.
+  console.log(
+    `[auth/callback] host=${host} hasCode=${!!code} hasTokenHash=${!!tokenHash} next=${next ?? "—"}`,
+  );
+
   if (!code && !tokenHash) {
     return NextResponse.redirect(
       `${appOrigin(origin, host)}/login?error=missing_code`,

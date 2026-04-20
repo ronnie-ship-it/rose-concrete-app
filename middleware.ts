@@ -4,66 +4,39 @@ import { updateSession } from "@/lib/supabase/middleware";
 /**
  * Host-based routing.
  *
- * One Vercel project, two customer-facing surfaces:
+ *   sandiegoconcrete.ai (+ www)  →  marketing site (apex).
+ *   app.sandiegoconcrete.ai      →  dashboard + crew PWA.
+ *   localhost / *.vercel.app     →  everything (dev convenience).
  *
- *   sandiegoconcrete.ai (+ www)  →  marketing site (apex). Renders the
- *                                   pages in app/(marketing)/* plus the
- *                                   existing public flows (/book, /q,
- *                                   /pay, /change-order, /hub, /embed,
- *                                   /api/public, /api/webhooks, /api/leads).
- *   app.sandiegoconcrete.ai      →  dashboard + crew PWA (requires login).
- *                                   `/` redirects to `/login` which fans
- *                                   out to the role-appropriate landing
- *                                   path once authenticated.
- *   localhost / *.vercel.app     →  everything (dev convenience). The
- *                                   marketing home renders at `/`; the
- *                                   business app is reachable at /login,
- *                                   /dashboard, /crew, etc.
- *
- * This middleware:
- *   1. Keeps the Supabase session cookies fresh on every request.
- *   2. On the app.* host, redirects bare `/` → `/login` so office staff
- *      never land on the marketing home as their default.
- *   3. On the marketing host, allows the public path allowlist through
- *      and bounces everything else (e.g. /dashboard, /crew, /login) to
- *      the app.* subdomain so the office app can't leak onto the public
- *      domain.
- *
- * `PUBLIC_PATH_PREFIXES` is the allowlist of paths that resolve on the
- * marketing host. Anything not in the list gets a 302 to app.<root>.
+ * THE FIRST THING THIS FILE DOES, before anything else, is catch any
+ * request carrying ?code= or ?token_hash= and forward it to
+ * /auth/callback. Supabase's magic link can land on any host
+ * depending on Site URL config, and the auth callback route is the
+ * only place that knows how to exchange the code for a session.
+ * This catch-all is the most important line of code in this file —
+ * if it doesn't fire, magic-link sign-in silently fails.
  */
 
 const APP_HOST_PREFIX = "app.";
 
 const PUBLIC_PATH_PREFIXES = [
-  // Marketing site routes (app/(marketing)/*).
   "/services/",
   "/landing/",
   "/service-areas/",
   "/about-us",
   "/contact",
-  // Existing customer-facing flows kept on the marketing domain.
   "/book",
   "/q/",
   "/pay/",
   "/change-order/",
   "/hub/",
   "/embed/",
-  "/forms/",          // customer signature/ack forms (round 12)
-  // Public API surfaces.
-  "/api/leads",       // same-origin marketing form post
-  "/api/public/",     // cross-origin webhooks (x-rose-secret guarded)
-  "/api/webhooks/",   // third-party callbacks (poptin, etc.)
-  "/api/health",      // uptime monitor
-  // Auth callback — we allow it on the marketing host so the magic
-  // link works no matter which host Supabase's Site URL points at.
-  // The callback route itself does the final redirect to the app
-  // subdomain after the session cookie is set.
+  "/forms/",
+  "/api/leads",
+  "/api/public/",
+  "/api/webhooks/",
+  "/api/health",
   "/auth/",
-  // /signup + /login intentionally NOT here — they live on the app
-  // subdomain so the session cookie scopes to app.* only, avoiding
-  // cookie-domain confusion across marketing and app surfaces.
-  // Static / framework.
   "/_next/",
   "/favicon",
   "/robots",
@@ -72,9 +45,6 @@ const PUBLIC_PATH_PREFIXES = [
   "/icon-",
 ];
 
-// Bare paths (no trailing slash) that need an exact match because the
-// prefix entries below all include trailing slashes — e.g. `/services`
-// would not match the `/services/` prefix.
 const PUBLIC_EXACT_PATHS = new Set([
   "/",
   "/about-us",
@@ -99,10 +69,6 @@ function isAppHost(host: string): boolean {
 
 function isMarketingHost(host: string): boolean {
   const h = stripWww(host).toLowerCase();
-  // True for `sandiegoconcrete.ai` and any future custom marketing domain
-  // that doesn't start with `app.`. Localhost + vercel.app previews are
-  // excluded so dev + PR previews continue to expose the whole app from
-  // the same host.
   if (h.startsWith(APP_HOST_PREFIX)) return false;
   if (h.includes("localhost")) return false;
   if (h.endsWith(".vercel.app")) return false;
@@ -111,36 +77,70 @@ function isMarketingHost(host: string): boolean {
 }
 
 function appHostFromMarketing(host: string): string {
-  // `sandiegoconcrete.ai`     → `app.sandiegoconcrete.ai`
-  // `www.sandiegoconcrete.ai` → `app.sandiegoconcrete.ai`
   const bare = stripWww(host);
   return `${APP_HOST_PREFIX}${bare}`;
 }
 
-export async function middleware(request: NextRequest) {
-  const host = (request.headers.get("host") ?? "").toLowerCase();
-  const { pathname, search, searchParams } = request.nextUrl;
+/**
+ * Detect a Supabase magic-link callback by looking for `?code=` or
+ * `?token_hash=` in the URL. We check via TWO independent methods so a
+ * weird URL parser somewhere can't silently drop the catch:
+ *
+ *   1. `nextUrl.searchParams` — the standard Web API.
+ *   2. Regex against the raw request.url string — fallback if (1)
+ *      returns false negative.
+ *
+ * Returns true if the URL looks like a Supabase callback.
+ */
+function looksLikeAuthCallback(request: NextRequest): boolean {
+  const sp = request.nextUrl.searchParams;
+  if (sp.has("code") || sp.has("token_hash")) return true;
+  // Belt-and-suspenders: scan the raw URL too.
+  const url = request.url;
+  if (/[?&](code|token_hash)=/.test(url)) return true;
+  return false;
+}
 
-  // Magic-link catch-all. If Supabase's Site URL is misconfigured (or
-  // the redirect allowlist rejects our explicit `emailRedirectTo`),
-  // the user lands on the apex with `?code=...` or `?token_hash=...`
-  // instead of /auth/callback. Detect that and reroute so the session
-  // cookie can still be set. Preserves the query string verbatim.
-  const hasCode = searchParams.has("code") || searchParams.has("token_hash");
-  if (hasCode && pathname !== "/auth/callback") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth/callback";
-    // Keep the existing search params (code, token_hash, type, next…).
-    return NextResponse.redirect(url);
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ════════════════════════════════════════════════════════════════
+  // PRIORITY 0 — magic-link catch-all. Runs BEFORE anything else.
+  // If we don't catch ?code= here, the user lands on whatever page
+  // the URL points at (usually the marketing apex) and the code is
+  // never exchanged.
+  //
+  // We also force the redirect to land on the same origin to avoid
+  // any host-based redirect chain that could drop the query string.
+  // The /auth/callback route handler is the one that decides whether
+  // to forward to a different subdomain.
+  // ════════════════════════════════════════════════════════════════
+  if (looksLikeAuthCallback(request) && pathname !== "/auth/callback") {
+    // Build the target URL from scratch to make absolutely sure the
+    // query string is preserved. Cloning nextUrl is the documented
+    // approach but we've seen it lose params in edge cases.
+    const target = new URL(request.url);
+    target.pathname = "/auth/callback";
+    // Vercel logs this so we can confirm the catch fired.
+    console.log(
+      `[middleware] auth catch-all: ${pathname}${request.nextUrl.search} → /auth/callback`,
+    );
+    // 307 (temporary, preserves method) is the right semantic — magic
+    // links are GETs but a future flow might POST through this path.
+    return NextResponse.redirect(target, { status: 307 });
   }
+
+  // ════════════════════════════════════════════════════════════════
+  // From here down, normal host-based routing.
+  // ════════════════════════════════════════════════════════════════
+  const host = (request.headers.get("host") ?? "").toLowerCase();
+  const { search } = request.nextUrl;
 
   // Refresh Supabase auth cookies on every request — needed for the
   // dashboard surface, harmless on the marketing surface.
   const sessionResponse = await updateSession(request);
 
-  // App subdomain: bare `/` is the auth gate. /login redirects to the
-  // role-appropriate landing path when the session is already valid, so
-  // we don't need to duplicate that logic here.
+  // App subdomain: bare `/` is the auth gate.
   if (isAppHost(host)) {
     if (pathname === "/") {
       const url = request.nextUrl.clone();
@@ -155,8 +155,8 @@ export async function middleware(request: NextRequest) {
     return sessionResponse;
   }
 
-  // Marketing host. Public paths render directly from app/(marketing)
-  // and the existing public flow folders. Anything else belongs on app.*.
+  // Marketing host. Public paths render directly; everything else
+  // bounces to the app.* subdomain.
   if (isPublicPath(pathname)) {
     return sessionResponse;
   }
@@ -167,8 +167,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except static assets and Next.js internals.
+  // Run on EVERYTHING except Next internals + image extensions. The
+  // wide net is intentional — the auth catch-all needs to fire on
+  // any path, including `/`, that might receive a magic-link code.
+  //
+  // The path `/` matches because the negative lookahead doesn't
+  // reject empty strings.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon-.*\\.png|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon-.*\\.png|manifest\\.webmanifest|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
