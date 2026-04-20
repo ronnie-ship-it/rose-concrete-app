@@ -1,0 +1,64 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/marketing-sync",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/payment-reconcile",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/payment-reminders",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/payment-receipts",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/visit-reminders",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/review-requests",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/workflow-stale",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/gmail-permit-scan",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/openphone-backfill",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/quote-followups",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/postjob-followups",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/recurring-jobs",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/crew-photo-reminders",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/email-auto-attach",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/openphone-media-attach",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

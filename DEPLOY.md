@@ -1,0 +1,335 @@
+# Deploying the Rose Concrete app to Vercel
+
+End-to-end instructions for taking a fresh clone of this repo and
+getting it live on Vercel with Supabase, Stripe-less QBO invoicing,
+Resend email, OpenPhone SMS, and Gmail auto-attach wired up.
+
+**Time estimate:** ~45 min first time, ~15 min for each subsequent
+tenant. You can skip the optional integrations (Gmail, OpenPhone,
+Web Push, QBO, Anthropic) and come back to them later — the app
+runs without them; they just no-op.
+
+---
+
+## 0. Prereqs
+
+- Node 20+ and npm installed locally
+- A GitHub account (Vercel pulls from a repo)
+- A credit card for Supabase + Vercel (both have free tiers that
+  fit this app's usage, but billing needs to be enabled for the
+  Gmail API + Google OAuth consent screen)
+
+---
+
+## 1. Push to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+gh repo create rose-concrete-app --private --source . --push
+```
+
+…or push to an existing GitHub repo via `git remote add`.
+
+---
+
+## 2. Supabase project
+
+1. Go to <https://supabase.com/dashboard> → **New project**.
+   Region: `us-west` (closest to San Diego). Save the database
+   password somewhere.
+2. Wait ~2 min for provisioning.
+3. From the project dashboard:
+   - Copy **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - Copy **anon / public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Copy **service_role** key (⚠ server-only) →
+     `SUPABASE_SERVICE_ROLE_KEY`
+
+### Run migrations
+
+```bash
+# Once — link the local checkout to the remote project.
+npx supabase link --project-ref <your-project-ref>
+
+# Then push all migrations in order.
+npx supabase db push
+```
+
+Or paste the files in `migrations/` into the Supabase SQL editor
+**in order** (001 → 040). `db push` is strongly preferred — it
+tracks state so re-running is a no-op.
+
+### Storage buckets
+
+Migration 003 creates the `attachments` + `photos` buckets already
+(check the Storage tab in Supabase to confirm). If missing, create
+them manually:
+
+- `attachments` → private
+- `photos` → private (we serve via signed URLs)
+
+---
+
+## 3. Vercel project
+
+1. Go to <https://vercel.com/new> → import your GitHub repo.
+2. Framework preset should auto-detect Next.js.
+3. Build command: `next build` (default). Install: `npm install`.
+4. **Do NOT deploy yet.** Click "Environment Variables" and paste
+   everything from section 4 first.
+
+### Connect the app subdomain
+
+Once the first deploy succeeds, go to **Settings → Domains**:
+
+- Primary domain: `app.<yourcompany>.com`
+- Add `www.<yourcompany>.com` and `<yourcompany>.com` too if you
+  want the marketing apex on the same Vercel project (the
+  middleware in `middleware.ts` routes host-based — app.* gets the
+  dashboard, everything else gets the marketing site).
+
+Vercel will hand you CNAME + A records to add at your DNS provider.
+
+---
+
+## 4. Environment variables
+
+All of these land in **Vercel → Settings → Environment Variables**
+(select "Production" + "Preview" + "Development" unless noted).
+Mirror them in `.env.local` for dev.
+
+### Required — nothing works without these
+
+```ini
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...   # server-only
+
+# The public origin of the app (no trailing slash). Used for
+# magic-link redirects, customer-form URLs, etc.
+NEXT_PUBLIC_APP_URL=https://app.yourcompany.com
+
+# Used by the Vercel cron scheduler to authenticate GET requests
+# to /api/cron/*. Pick a long random string (32+ chars).
+CRON_SECRET=<openssl rand -hex 32>
+```
+
+### Optional — email (Resend)
+
+Quote sends, customer-form delivery, hub logins, review-request
+emails all go through Resend.
+
+```ini
+RESEND_API_KEY=re_xxxxxxxxxxxx
+LEAD_NOTIFICATION_FROM=Your Company <leads@yourcompany.com>
+RESEND_REPLY_TO=owner@yourcompany.com
+LEAD_NOTIFICATION_EMAIL=owner@yourcompany.com
+```
+
+Sign up at <https://resend.com> (free tier = 3k emails/month).
+Verify the domain before sending from
+`leads@yourcompany.com`; until then use
+`Your Company <onboarding@resend.dev>`.
+
+### Optional — OpenPhone (SMS + MMS auto-attach)
+
+```ini
+OPENPHONE_API_KEY=<from OpenPhone Settings → API keys>
+OPENPHONE_PHONE_NUMBER_ID=<optional; pin sends to one number>
+```
+
+### Optional — Gmail auto-attach
+
+Three env vars. See `scripts/gmail-oauth-bootstrap.js` for the
+one-time token mint flow.
+
+```ini
+GMAIL_CLIENT_ID=<from Google Cloud Console OAuth>
+GMAIL_CLIENT_SECRET=<paired secret>
+GMAIL_REFRESH_TOKEN=<from the bootstrap script>
+```
+
+### Optional — Web Push
+
+```ini
+VAPID_PUBLIC_KEY=<from `npx web-push generate-vapid-keys`>
+VAPID_PRIVATE_KEY=<paired private key>
+VAPID_SUBJECT=mailto:owner@yourcompany.com
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<same as VAPID_PUBLIC_KEY>
+```
+
+### Optional — QuickBooks Online
+
+```ini
+QBO_CLIENT_ID=<Intuit developer app OAuth client id>
+QBO_CLIENT_SECRET=<paired secret>
+QBO_COMPANY_ID=<Intuit realmId>
+QBO_REFRESH_TOKEN=<from QBO OAuth flow>
+```
+
+### Optional — Anthropic (photo alt-text)
+
+```ini
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+```
+
+### Optional — Call tracking
+
+```ini
+CALL_TRACKING_WEBHOOK_SECRET=<shared secret with your call tracker>
+```
+
+---
+
+## 5. Supabase auth configuration
+
+1. **Authentication → Providers** → enable Email (the default).
+2. **Authentication → URL Configuration** → set **Site URL** to
+   `https://app.yourcompany.com`.
+3. Add these redirect URLs so magic links work:
+   - `https://app.yourcompany.com/auth/callback`
+   - `http://localhost:3000/auth/callback` (for local dev)
+4. **Authentication → Email Templates → Magic Link** → customize
+   the template. The default works; branding is optional.
+
+---
+
+## 6. Deploy + smoke test
+
+1. Back in Vercel, hit **Deploy**. First build takes ~4 min.
+2. Once green, visit `https://app.yourcompany.com/signup`.
+3. Enter your company name + email. You should receive a magic
+   link email via Supabase.
+4. Click the link → lands on `/dashboard`. You're now admin of
+   a fresh tenant with 14-day trial status.
+5. Go to **Settings → Integrations** to confirm green dots for
+   every env var you've set.
+
+---
+
+## 7. Vercel cron jobs
+
+The repo's `vercel.json` already declares every cron. They auto-
+enable on first deploy. You don't need to configure them further.
+Crons authenticate via `CRON_SECRET` (matches `Authorization:
+Bearer <CRON_SECRET>` header Vercel sends).
+
+Verify:
+
+- **Vercel → Settings → Cron Jobs** should show ~15 scheduled
+  tasks ranging from "every 15 min" to "daily".
+- The first few will execute within 15 min of deploy. Check
+  Vercel → Logs → Cron for errors.
+
+---
+
+## 8. Adding teammates
+
+From the admin dashboard:
+
+1. Settings → Manage team → enter teammate email + role
+   (admin / office / crew).
+2. They receive a magic link; the handle_new_user trigger pins
+   their profile to your tenant via the invite token.
+
+(Invite flow details live in `app/dashboard/settings/team/`.)
+
+---
+
+## 9. Custom domains per tenant (optional, future)
+
+Today every tenant lives under `app.yourcompany.com`. A future
+round can add per-tenant subdomains (`bayarea.app.yourcompany.com`,
+`alpha-concrete.app.yourcompany.com`) via Vercel's wildcard
+domains + middleware host → tenant_id lookup. Not needed to ship.
+
+---
+
+## 10. Monitoring + backups
+
+### Backups
+
+Supabase automatically takes daily backups on the paid plan
+($25/mo) and retains 7 days. On the free plan you need to trigger
+them manually or set up a pg_dump cron.
+
+For production, upgrade to **Pro** before you have real customer
+data.
+
+### Errors
+
+- Vercel Logs shows runtime errors in server components and API
+  routes.
+- Client-side errors need Sentry or similar (not wired today —
+  plan a future round).
+
+### Uptime
+
+Add <https://uptimerobot.com> pointed at
+`https://app.yourcompany.com/api/health` (404 today; a 30-line
+route returning `{ok:true}` is a 5-min follow-up).
+
+---
+
+## 11. Upgrading a tenant's plan
+
+Today plan is display-only (`tenants.plan` = starter / pro /
+enterprise). Billing via Stripe is a separate module. For now,
+upgrade manually:
+
+```sql
+update public.tenants
+set plan = 'pro', status = 'active', trial_ends_at = null
+where id = '<tenant id>';
+```
+
+---
+
+## 12. Rollback
+
+- **Code rollback:** Vercel → Deployments → click any previous
+  deploy → "Promote to Production".
+- **DB rollback:** Supabase doesn't auto-rollback migrations.
+  Take a manual backup before running a destructive migration
+  (migrations 001-040 are all additive/idempotent; rollback is
+  mostly "re-run the prior migration's DROP statements").
+
+---
+
+## 13. Checklist for your first production tenant
+
+- [ ] Supabase project created, migrations 001-040 applied
+- [ ] Vercel project deployed, domain pointed at `app.<domain>`
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` + anon + service_role set
+- [ ] `NEXT_PUBLIC_APP_URL` = prod URL
+- [ ] `CRON_SECRET` set
+- [ ] Supabase **Site URL** matches prod URL
+- [ ] Supabase auth redirects include `/auth/callback`
+- [ ] Resend API key set + domain verified
+- [ ] OpenPhone API key set + number id pinned
+- [ ] Gmail OAuth + refresh token set (via bootstrap script)
+- [ ] VAPID keys set for push
+- [ ] QBO OAuth tokens set (if using invoicing)
+- [ ] Test signup flow at `/signup` from incognito — confirm
+      magic link arrives + lands on a fresh tenant dashboard
+- [ ] `Settings → Integrations` shows all green dots for the
+      integrations you configured
+
+---
+
+## 14. Where to look when something breaks
+
+| Symptom | Where to check |
+|---|---|
+| "Missing tenant on this session" | User doesn't have a profile row — re-run migration 002 |
+| Magic links don't arrive | Supabase Auth logs → Email delivery; also Resend dashboard |
+| Cron not firing | Vercel → Cron Jobs; verify `CRON_SECRET` matches |
+| QBO invoice not generating | Check QBO_* env vars; logs in Vercel under `/api/.../actions.ts` |
+| Customer-form link 404 | `customer_forms` row's `token` column — `/forms/<token>` is the URL |
+| Crew photo reminder silent | 4pm PT = 23:00 UTC, confirm the cron is scheduled for `0 23 * * *` |
+| Push notifications silent | `Settings → Notifications` "Send test push" button shows error |
+
+Everything else: check Vercel → Functions → Logs. The app logs
+enough context to diagnose (`[push]`, `[gmail]`, `[openphone]`,
+`[automation]` prefixes are searchable).

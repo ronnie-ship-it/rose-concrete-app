@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Rose Concrete palette — keep in sync with tailwind.config.ts */
+  --brand: #1B2A4A;      /* navy */
+  --accent: #2ABFBF;     /* teal */
+  --cream: #F5EFE0;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  background-color: var(--cream);
+}
+
+body {
+  background-color: var(--cream);
+  color: #111827;
+}
+
+/* Dark mode: applied when <html class="dark"> (see ThemeInit + user pref cookie).
+   We keep the shift minimal — surfaces go near-black, text goes near-white, and
+   the navy brand stays readable. Existing Tailwind classes on individual pages
+   can opt into more specific dark: variants over time without breaking. */
+html.dark {
+  background-color: #0a0f1a;
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #0a0f1a;
+  color: #f1f5f9;
+}
+
+/* Swap common Tailwind surface classes in dark mode without having to
+   touch every detail page. These shims catch the 95% case — raw
+   `bg-white` cards, `bg-neutral-50` table headers, and default body
+   text colors — so a detail page that doesn't yet declare dark:
+   variants still looks right. Individual pages that want finer
+   control can still override with explicit `dark:bg-*` classes. */
+html.dark .bg-white { background-color: #111829 !important; }
+html.dark .bg-neutral-50 { background-color: #0f1522 !important; }
+html.dark .bg-neutral-100 { background-color: #162139 !important; }
+html.dark .border-neutral-100 { border-color: #162139 !important; }
+html.dark .border-neutral-200 { border-color: #1e2a44 !important; }
+html.dark .border-neutral-300 { border-color: #2a3a5c !important; }
+html.dark .text-neutral-900 { color: #f1f5f9 !important; }
+html.dark .text-neutral-800 { color: #e2e8f0 !important; }
+html.dark .text-neutral-700 { color: #cbd5e1 !important; }
+html.dark .text-neutral-600 { color: #94a3b8 !important; }
+html.dark .text-neutral-500 { color: #94a3b8 !important; }
+html.dark .text-neutral-400 { color: #94a3b8 !important; }
+html.dark .divide-neutral-100 > * + * { border-color: #162139 !important; }
+html.dark .divide-neutral-200 > * + * { border-color: #1e2a44 !important; }
+/* Print-to-PDF pages must always be on white — otherwise the printout
+   comes out near-black. The `.statement` and `.invoice` classes opt
+   out of the dark shims. */
+html.dark .statement,
+html.dark .invoice {
+  background: #fff !important;
+  color: #111827 !important;
+}
+html.dark .statement *,
+html.dark .invoice * {
+  color: inherit !important;
+}
+
+/* Print CSS — hide the dashboard shell (sidebar + top bar) so cash
+   journal / statement / invoice PDF exports are clean. Pages that
+   want to keep the shell in the printout can override .dashboard-shell
+   on themselves; today nothing does. */
+@media print {
+  .dashboard-shell-sidebar,
+  .dashboard-shell-header {
+    display: none !important;
+  }
+  .dashboard-shell-main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  /* Zero out the shell's desktop sidebar offset. */
+  .lg\:pl-60 {
+    padding-left: 0 !important;
+  }
+  html, body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+  /* Always pages should print on white even in dark mode. */
+  html.dark, html.dark body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+  html.dark .bg-white,
+  html.dark .bg-neutral-50,
+  html.dark .bg-neutral-100 {
+    background-color: #fff !important;
+  }
+  html.dark .text-neutral-900,
+  html.dark .text-neutral-800,
+  html.dark .text-neutral-700,
+  html.dark .text-neutral-600,
+  html.dark .text-neutral-500,
+  html.dark .text-neutral-400 {
+    color: #111827 !important;
+  }
+}
+
+/* Keep the embedded lead form tidy if a host page doesn't style it. */
+.rose-lead-form form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 32rem;
+}
+.rose-lead-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.rose-lead-form input,
+.rose-lead-form select,
+.rose-lead-form textarea {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  font: inherit;
+}
+.rose-lead-form button {
+  background: var(--brand);
+  color: white;
+  padding: 0.625rem 1rem;
+  border-radius: 0.375rem;
+  border: 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rose-lead-form button:hover { background: var(--accent); }
+.rose-lead-status { font-size: 0.875rem; color: #475569; }
