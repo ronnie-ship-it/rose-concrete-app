@@ -184,14 +184,48 @@ CALL_TRACKING_WEBHOOK_SECRET=<shared secret with your call tracker>
 
 ## 5. Supabase auth configuration
 
+**This is the step people get wrong.** If the Site URL isn't set
+to the app subdomain, magic links land on the marketing homepage
+with a `?code=...` query and the user sees a 404 or your marketing
+page instead of `/dashboard`.
+
 1. **Authentication → Providers** → enable Email (the default).
-2. **Authentication → URL Configuration** → set **Site URL** to
-   `https://app.yourcompany.com`.
-3. Add these redirect URLs so magic links work:
-   - `https://app.yourcompany.com/auth/callback`
-   - `http://localhost:3000/auth/callback` (for local dev)
-4. **Authentication → Email Templates → Magic Link** → customize
-   the template. The default works; branding is optional.
+2. **Authentication → URL Configuration** (the config with the
+   most traps):
+   - **Site URL** → `https://app.yourcompany.com`
+     — NOT the marketing apex, NOT the www variant.
+     The Site URL is Supabase's fallback when `emailRedirectTo`
+     isn't in the allowlist. If it points at your marketing
+     domain, magic links land there instead of on the app.
+   - **Redirect URLs** (allowlist — must include every host the
+     callback might run on):
+     - `https://app.yourcompany.com/auth/callback`
+     - `https://app.yourcompany.com/auth/callback?next=/dashboard`
+     - `https://app.yourcompany.com/auth/callback?next=/crew`
+     - Optional, for Vercel previews: `https://*-yourteam.vercel.app/auth/callback`
+     - Optional, for local dev: `http://localhost:3000/auth/callback`
+
+   Even though the app's callback handler will bounce a misrouted
+   callback from the apex to `app.*`, Supabase rejects any URL not
+   in the allowlist before it ever redirects, so the allowlist
+   still needs entries for every path you'll use.
+
+3. **Authentication → Email Templates → Magic Link** — customize
+   the template. The default works; branding is optional. The
+   template uses `{{ .SiteURL }}` by default — if you override it,
+   make sure the link still points at `{{ .ConfirmationURL }}` so
+   Supabase fills in the signed redirect.
+
+4. **Verify it end-to-end**:
+   - From a private window, hit
+     `https://app.yourcompany.com/signup`.
+   - Enter a test email + company name.
+   - Open the email (Supabase → Authentication → Users shows the
+     last magic-link email in dev mode).
+   - Click it. You should land on `/dashboard` inside the app
+     subdomain with a brand-new workspace. If you land on the
+     apex homepage with `?code=...` in the URL, Site URL isn't set
+     right (step 5.2).
 
 ---
 

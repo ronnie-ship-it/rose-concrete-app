@@ -22,6 +22,7 @@
  */
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAppUrl } from "@/lib/app-url";
 
 export type SignupResult =
   | { ok: true; email: string; newTenant: boolean }
@@ -74,7 +75,7 @@ export async function tenantSignupAction(
 
   // Fire the magic link. Uses the same callback as the login form.
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = await resolveAppUrl();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {

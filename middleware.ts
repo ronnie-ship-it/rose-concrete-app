@@ -55,6 +55,11 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/public/",     // cross-origin webhooks (x-rose-secret guarded)
   "/api/webhooks/",   // third-party callbacks (poptin, etc.)
   "/api/health",      // uptime monitor
+  // Auth callback — we allow it on the marketing host so the magic
+  // link works no matter which host Supabase's Site URL points at.
+  // The callback route itself does the final redirect to the app
+  // subdomain after the session cookie is set.
+  "/auth/",
   // /signup + /login intentionally NOT here — they live on the app
   // subdomain so the session cookie scopes to app.* only, avoiding
   // cookie-domain confusion across marketing and app surfaces.
@@ -114,7 +119,20 @@ function appHostFromMarketing(host: string): string {
 
 export async function middleware(request: NextRequest) {
   const host = (request.headers.get("host") ?? "").toLowerCase();
-  const { pathname, search } = request.nextUrl;
+  const { pathname, search, searchParams } = request.nextUrl;
+
+  // Magic-link catch-all. If Supabase's Site URL is misconfigured (or
+  // the redirect allowlist rejects our explicit `emailRedirectTo`),
+  // the user lands on the apex with `?code=...` or `?token_hash=...`
+  // instead of /auth/callback. Detect that and reroute so the session
+  // cookie can still be set. Preserves the query string verbatim.
+  const hasCode = searchParams.has("code") || searchParams.has("token_hash");
+  if (hasCode && pathname !== "/auth/callback") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    // Keep the existing search params (code, token_hash, type, next…).
+    return NextResponse.redirect(url);
+  }
 
   // Refresh Supabase auth cookies on every request — needed for the
   // dashboard surface, harmless on the marketing surface.

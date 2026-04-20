@@ -2,6 +2,7 @@
 
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAppUrl } from "@/lib/app-url";
 
 type SendMagicLinkResult =
   | { ok: true; email: string }
@@ -19,13 +20,16 @@ export async function sendMagicLink(
   }
 
   const supabase = await createClient();
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = await resolveAppUrl();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${appUrl}/auth/callback`,
+      // Include ?next=/dashboard so the callback knows where to land
+      // on success. Without it the callback falls back to the role's
+      // default landing path, which for admin/office is /dashboard
+      // anyway — but being explicit keeps the URL self-documenting.
+      emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
       shouldCreateUser: true,
     },
   });
