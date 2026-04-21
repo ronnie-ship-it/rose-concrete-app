@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import { getGmailAdapter } from "@/lib/gmail";
 import { storageKeyFor } from "@/lib/attachments";
@@ -31,10 +32,7 @@ const SUBJECT_TRIGGERS = /\b(permit|survey|sidewalk)\b/i;
 const PERMIT_NUMBER_REGEX = /\b([A-Z0-9]{2,4}-\d{3,8})\b/;
 
 export async function GET(request: NextRequest) {
-  if (
-    request.headers.get("authorization") !==
-    `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

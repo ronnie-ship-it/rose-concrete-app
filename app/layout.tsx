@@ -15,15 +15,28 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    // iOS-only touch icon. 180×180 is Apple's recommended size and the
+    // icon is a tight-fit (no maskable safe-zone padding) because iOS
+    // rounds the corners itself. Using the 192px maskable icon here
+    // would leave visible brand-navy padding inside the rounded iOS
+    // tile — which, combined with the old red theme_color, is why
+    // users saw a red/navy tile with a tiny logo instead of the full
+    // Rose badge.
+    apple: [{ url: "/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#b91c1c",
+  // Brand navy — matches manifest.webmanifest's theme_color so iOS /
+  // Android don't synthesize a red fallback tile when they can't
+  // resolve the icon.
+  themeColor: "#1B2A4A",
 };
 
 export default async function RootLayout({

@@ -2,10 +2,11 @@
   "name": "Rose Concrete",
   "short_name": "Rose Concrete",
   "description": "Rose Concrete operations — schedule, quotes, and job photos.",
-  "start_url": "/",
+  "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#b91c1c",
+  "background_color": "#F5EFE0",
+  "theme_color": "#1B2A4A",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -18,6 +19,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import { stepIsStale, type ProjectWorkflowStep } from "@/lib/workflows";
 
@@ -21,10 +22,7 @@ export const maxDuration = 60;
 const STALE_THRESHOLD_DAYS = 3;
 
 export async function GET(request: NextRequest) {
-  if (
-    request.headers.get("authorization") !==
-    `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

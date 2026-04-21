@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import { createDefaultSenders } from "@/lib/reminder-senders";
 
@@ -22,7 +23,7 @@ const WINDOWS: { offset_hours: number; lead_min: number; late_min: number }[] = 
 ];
 
 export async function GET(request: NextRequest) {
-  if (request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

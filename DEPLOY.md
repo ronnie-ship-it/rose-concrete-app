@@ -244,17 +244,68 @@ page instead of `/dashboard`.
 
 ## 7. Vercel cron jobs
 
-The repo's `vercel.json` already declares every cron. They auto-
-enable on first deploy. You don't need to configure them further.
-Crons authenticate via `CRON_SECRET` (matches `Authorization:
-Bearer <CRON_SECRET>` header Vercel sends).
+The repo's `vercel.json` already declares every cron (~18 schedules
+covering payment reconcile, photo reminders, lead intake, etc.).
+They auto-enable on first deploy.
 
-Verify:
+### Cron auth — two-channel design
 
-- **Vercel → Settings → Cron Jobs** should show ~15 scheduled
+Each cron route accepts a request from EITHER source:
+
+1. **Vercel's automatic cron scheduler** sends `x-vercel-cron: 1`
+   on every scheduled invocation. No secret needed. This header
+   can't be forged from outside — Vercel strips inbound `x-vercel-*`
+   headers from public traffic.
+2. **External triggers** (curl from a terminal, GitHub Actions,
+   another scheduler) must send `Authorization: Bearer $CRON_SECRET`.
+   The secret you set in Vercel env must match.
+
+The shared `lib/cron-auth.ts` helper handles both. So:
+
+- **If you DON'T set `CRON_SECRET`**: Vercel's cron still works
+  (uses the header). External triggers get 401.
+- **If you DO set `CRON_SECRET`**: both channels work.
+
+### Setting `CRON_SECRET`
+
+Recommended even though it's optional, so you can curl-test:
+
+```bash
+# Generate a value:
+openssl rand -hex 32
+```
+
+Then in Vercel:
+**Settings → Environment Variables → Add**:
+- Name: `CRON_SECRET`
+- Value: paste the openssl output
+- Environments: ✓ Production ✓ Preview ✓ Development
+- Save
+
+Mirror in `.env.local` for local dev:
+```
+CRON_SECRET=<your-generated-value>
+```
+
+### Test a cron locally
+
+```bash
+curl -i http://localhost:3000/api/cron/payment-reconcile \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Should return `200 {"ok": true, ...}` (or `200 {"ok": true, "skipped": "..."}`
+when the relevant feature flag is off).
+
+### Verify on Vercel
+
+- **Vercel → Settings → Cron Jobs** should show ~18 scheduled
   tasks ranging from "every 15 min" to "daily".
-- The first few will execute within 15 min of deploy. Check
-  Vercel → Logs → Cron for errors.
+- The first few execute within 15 min of deploy. Check
+  Vercel → Logs → Functions → filter to `/api/cron/` for errors.
+- A 401 from `/api/cron/*` after a deploy means BOTH the header
+  AND the bearer check failed — most often this is because
+  `lib/cron-auth.ts` wasn't deployed yet (force a redeploy).
 
 ---
 

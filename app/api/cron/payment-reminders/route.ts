@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import {
   createDefaultSenders,
@@ -34,8 +35,7 @@ const APP_BASE_URL =
   process.env.APP_BASE_URL ?? "https://app.roseconcrete.com";
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

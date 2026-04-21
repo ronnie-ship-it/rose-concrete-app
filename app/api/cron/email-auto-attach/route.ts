@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import { getGmailAdapter } from "@/lib/gmail";
 import { storageKeyFor } from "@/lib/attachments";
@@ -26,11 +27,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  if (
-    request.headers.get("authorization") !==
-      `Bearer ${process.env.CRON_SECRET}` &&
-    request.headers.get("x-vercel-cron") !== "1"
-  ) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
