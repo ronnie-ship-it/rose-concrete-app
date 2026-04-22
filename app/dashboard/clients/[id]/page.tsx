@@ -20,6 +20,7 @@ import { loadCustomFieldsFor } from "@/lib/custom-fields";
 import { ArchiveClientButton } from "./archive-button";
 import { ClientHubButtons } from "./hub-buttons";
 import { ClientCreateBar } from "./client-create-bar";
+import { ClientWorkOverview, type WorkItem } from "./work-overview";
 
 export const metadata = { title: "Client — Rose Concrete" };
 
@@ -154,6 +155,50 @@ export default async function ClientDetailPage({ params }: { params: Params }) {
     .map((m) => m.qbo_paid_at as string)
     .sort()
     .slice(-1)[0];
+
+  // Work-overview tab items. Jobber shows requests / quotes / jobs
+  // / invoices in a single tabbed table. We pull from the data
+  // already loaded above so this is pure shaping, no extra queries.
+  const workItems: WorkItem[] = [
+    ...(projects ?? []).map((p) => ({
+      id: p.id as string,
+      kind: "project" as const,
+      label: p.name as string,
+      href: `/dashboard/projects/${p.id}`,
+      date: (p.created_at as string | null) ?? null,
+      status: (p.status as string) ?? "unknown",
+      amount:
+        p.revenue_cached != null ? Number(p.revenue_cached) : null,
+    })),
+    ...(quotes ?? []).map((q) => ({
+      id: q.id as string,
+      kind: "quote" as const,
+      label: `Quote #${q.number}`,
+      href: `/dashboard/quotes/${q.id}`,
+      date: (q.issued_at as string | null) ?? null,
+      status: (q.status as string) ?? "draft",
+      amount:
+        q.accepted_total != null
+          ? Number(q.accepted_total)
+          : q.base_total != null
+            ? Number(q.base_total)
+            : null,
+    })),
+    ...(allMilestones ?? []).map((m, i) => ({
+      id: `mlst-${i}`,
+      kind: "invoice" as const,
+      label: `Milestone ${i + 1}`,
+      // Milestones don't have a direct detail page — link to the
+      // project's billing anchor.
+      href:
+        projectIds.length > 0
+          ? `/dashboard/projects/${projectIds[0]}#billing`
+          : `/dashboard/payments`,
+      date: (m.qbo_paid_at as string | null) ?? null,
+      status: (m.status as string) ?? "pending",
+      amount: Number(m.total_with_fee ?? m.amount ?? 0),
+    })),
+  ];
 
   // Stats strip derived values
   const activeJobsCount = (projects ?? []).filter((p) =>
@@ -308,6 +353,10 @@ export default async function ClientDetailPage({ params }: { params: Params }) {
           </dl>
         </div>
       )}
+
+      {/* Jobber-parity: Work overview tabs (Active / All / Requests /
+          Quotes / Jobs / Invoices) on a single tabbed table. */}
+      <ClientWorkOverview items={workItems} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">

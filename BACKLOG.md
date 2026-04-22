@@ -2,6 +2,245 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 17 (2026-04-20, overnight)
+
+`npx tsc --noEmit` passes. **No new SQL migrations this round** —
+but there IS a new scripted migration workflow (`scripts/migrate.js`)
+and Ronnie should now run migrations via `npm run migrate` instead
+of pasting SQL into the Supabase dashboard.
+
+### New env var
+
+Add to `.env.local` (and Vercel project env vars if you want the
+runner to work in CI later):
+
+```
+SUPABASE_DB_URL=postgresql://postgres.<ref>:<password>@aws-0-us-west-1.pooler.supabase.com:6543/postgres
+```
+
+Get it from Supabase Dashboard → Project Settings → Database →
+Connection string → **URI** format (fill in the password you set
+at project creation). The pooler URL on port 6543 is what this
+script expects.
+
+### What shipped this round
+
+- **`scripts/migrate.js`** — autonomous migration runner. Reads
+  every SQL file in `migrations/` in lexical order, hashes each
+  file's contents, and applies any that haven't been recorded in a
+  new `migrations_log(filename, sha256, applied_at, duration_ms)`
+  table. Safe to re-run — each invocation is a no-op until a new
+  file drops. Stops cleanly at the first failure (individual
+  migrations run in their own transaction). Flags: `--status`,
+  `--dry-run`, `--force <filename>`. Exposed as `npm run migrate`
+  and `npm run migrate:status`. Added `pg` + `@types/pg` as
+  dev deps.
+- **`scripts/ship.mjs`** — commit + push helper. Stages all
+  untracked + modified files, writes a commit message summarizing
+  the change set (N new / N changed / mostly in `<top-level-dir>`),
+  pushes to `origin main`. Flags: `--dry-run`, `--no-push`,
+  `--message "..."`. `npm run ship` runs it.
+- **Mark as Approved** (quote detail) — renamed the prior
+  "Convert to job" button to **✓ Mark as approved**, made it a
+  taller emerald primary button on every non-accepted quote.
+  Confirm copy explicitly frames it for phone + in-person
+  approvals. The underlying `convertQuoteToJobAction` seeds the
+  14-step checklist (from round 16); this makes the button obvious.
+- **ClientCombobox everywhere a client is picked.** Wired into
+  the project-new form (`app/dashboard/projects/project-form.tsx`
+  — swapped the `<select>` for the typeahead; legacy `clients`
+  prop kept for back-compat so existing callers don't break).
+  `/dashboard/quotes/new` now redirects to `/dashboard/quotes/quick`
+  unless the URL has `project_id=…` or `legacy=1` — Quick Quote
+  becomes the default new-quote path.
+- **Clients list — Jobber-parity table** at md+ breakpoints.
+  Columns: Name / Contact / City / Status / Last activity.
+  Row-level hover highlight. Clicking Name opens detail.
+  Mobile breakpoint falls back to the existing JobCard list so
+  thumb-friendly layout is preserved. New `relativeTime()` helper
+  produces Jobber's "46 minutes ago", "2:52 PM", "Fri", "Apr 3"
+  ladder.
+- **Client detail — Work overview tabs.** New
+  `<ClientWorkOverview>` component renders every request / quote /
+  project / invoice for the client as a single tabbed table
+  (Active / All / Requests / Quotes / Jobs / Invoices) with
+  kind-colored pill (amber / pink / emerald / sky) + Date /
+  Status / Amount columns. Matches Jobber's inline filter at
+  `/clients/{id}`.
+- **Dashboard — Business Performance panel.** New
+  `<BusinessPerformance>` component renders in a right-hand
+  column next to the Active Checklists widget. Four cards:
+  **Receivables** (total + top 3 clients owed), **Upcoming jobs
+  this week** (revenue total + count), **Revenue this month**
+  (paid milestones), **Upcoming payouts** (placeholder). Matches
+  the right column of Jobber's home page per the audit.
+
+### Files added / changed this round
+
+- **New:** `scripts/migrate.js`, `scripts/ship.mjs`,
+  `components/business-performance.tsx`,
+  `app/dashboard/clients/[id]/work-overview.tsx`.
+- **Changed:** `package.json` (pg, scripts), `.env.local.example`
+  (SUPABASE_DB_URL), `app/dashboard/quotes/[id]/quote-actions.tsx`,
+  `app/dashboard/projects/project-form.tsx` (ClientCombobox),
+  `app/dashboard/quotes/new/page.tsx` (redirect to Quick Quote),
+  `app/dashboard/clients/page.tsx` (table + relativeTime),
+  `app/dashboard/clients/[id]/page.tsx` (Work overview tabs),
+  `app/dashboard/page.tsx` (Business Performance two-column
+  layout).
+
+### Jobber-parity pass — shipped this round
+
+- **Dashboard** — Active checklists (round 16) + Business
+  Performance right column (this round) match the audit's
+  right-column layout.
+- **Clients list** — proper table with columns + hover rows.
+- **Client detail** — Work overview tabs + the existing sidebar
+  cards (Notes, Call/text history, Attachments, Custom fields,
+  Projects/Quotes/Visits summaries).
+- **Quote detail** — prominent "Mark as approved" primary button.
+
+### Jobber-parity pass — deferred to next round
+
+Per the 1130-line audit, still to rebuild:
+
+- **Jobs list metrics** (Ending within 30 days / Late / Requires
+  Invoicing / Action Required / Unscheduled cards).
+- **Job detail** — Scheduled visits table with "Edit all visits"
+  button, full Billing section tabs (Invoicing / Reminders are
+  done; the Jobs list's metric-card layout isn't).
+- **Schedule** — Month / Week / Day grid views (we currently
+  show a list).
+- **Quote detail sidebar** — the slim Card/ACH/Require-method
+  deposit toggles (we have them on invoices from round 10;
+  Jobber's Quote sidebar is a simpler variant).
+
+### Ops: how Ronnie runs the new scripts
+
+Once SUPABASE_DB_URL is set in `.env.local`:
+
+```bash
+npm run migrate:status   # list applied / pending
+npm run migrate          # apply pending migrations
+npm run ship             # commit + push (Vercel auto-deploys)
+```
+
+### Earlier wake-up notes kept below for history.
+
+---
+
+## ☕ WAKE-UP NOTE — overnight round 16 (2026-04-20, overnight)
+
+`npx tsc --noEmit` passes. **No new migrations this round** — every
+change is UI + server actions on top of the existing schema.
+
+### What shipped (user's specific asks)
+
+- **Quick Quote** at `/dashboard/quotes/quick` — one form, one
+  submit. Pick/search a client OR type a new one inline (name +
+  phone/email + address); supply a service address + optional
+  service type / sqft / scope / price. The action upserts the
+  client, auto-creates a placeholder project, allocates a new
+  quote number, optionally seeds the first line item, and
+  redirects to the full quote editor. No project-first dance.
+  "⚡ Quick quote" button added to the dashboard PageHeader
+  actions AND to the quotes list header (as the primary action;
+  the classic "+ New quote" is now secondary).
+- **ClientCombobox** at `components/client-combobox.tsx` —
+  typeahead-driven replacement for every `<select>` client
+  picker. Empty state shows the 5 most recent clients (Jobber
+  parity). As Ronnie types, debounced search (300ms) hits
+  `searchClientsAction` against name / phone / email / city.
+  Persistent "+ New client" row at the bottom expands into an
+  inline create form (name + phone/email + address) — on submit
+  the new client is selected and the combobox closes. Wired into
+  Quick Quote; ready to drop into the other quote / project /
+  task / schedule forms one at a time.
+- **Clients list: newest-first by default.** Orders by
+  `updated_at DESC` with `created_at DESC` as a tie-breaker —
+  matches Jobber's `UPDATED_AT DESCENDING`. Added a **Newest /
+  A–Z** pill toggle next to the Active/Archived tabs so Ronnie
+  can flip to alphabetical when the recency sort isn't useful.
+  URL state preserves through the toggle (`?sort=alpha`).
+- **14-step default job checklist.** `lib/workflows.ts` gets a
+  new `DEFAULT_JOB_CHECKLIST` array (Call customer → Permits →
+  Pre-demo ack → Schedule demo → Demo day → Subgrade → Forms +
+  rebar → Pre-pour form → Order concrete → Pour day → Control
+  joints → Strip forms → Final walkthrough → Generate invoice).
+  `seedDefaultJobChecklist(projectId)` seeds all 14 with
+  `depends_on_sequence` chaining + `sla_business_days` per step.
+  Idempotent — returns `created: 0` if any steps already exist.
+  Wired into `convertQuoteToJobAction` so every approved quote
+  (public /q/<token> OR admin "Approve → Convert to Job") lands
+  with a ready-to-schedule list. Service-type-specific templates
+  (e.g. sidewalk's 11-step) still take priority when present.
+- **Dashboard widget: Active job checklists.** Renders each
+  approved/scheduled/active project with a 3-segment progress
+  bar (green done / amber in-progress / red overdue) +
+  count chips below. Sorted by overdue-count so problem projects
+  surface first. Click → project detail with `#workflow` anchor.
+- **Quick-schedule from any checklist step (<30s flow).**
+  One-tap `📅 Schedule` button on each workflow step expands an
+  inline date + time picker + Save. The action stamps the step's
+  `due_date` + `status=in_progress` AND creates a `visits` row
+  for the project at the chosen time, so the step shows up on
+  the calendar + crew-app Today screen automatically.
+
+### Jobber-parity pass (partial — scoped where high-ROI)
+
+Full page-by-page rebuild per the audit (`jobber-feature-audit.md`,
+1130 lines) is multi-round work. This round did:
+
+- Dashboard: Quick Quote primary button, Active checklists widget,
+  existing 4-card pipeline summary already matched Jobber's
+  Requests / Quotes / Jobs / Invoices layout from round 8.
+- Quotes list: Quick Quote primary + New Quote secondary.
+- Clients list: newest-first sort + A-Z toggle.
+- Workflow steps: Quick-schedule button on every step.
+
+**Deferred to next round — explicit Jobber-parity items
+audit says we should match but this round didn't touch:**
+
+- **Dashboard "Business Performance" right column** — Receivables
+  card, Upcoming jobs, Revenue this month, Upcoming payouts. Some
+  data already exists (open balance, etc.) but needs a dedicated
+  layout.
+- **Clients list table columns** — Jobber shows Name / Address /
+  Tags / Status / Last Activity. Our list still uses JobCard
+  rows. Full table with sortable columns + hover-reveal quick
+  actions is a separate pass.
+- **Client detail "Work overview"** tabbed table (Active /
+  Requests / Quotes / Jobs / Invoices) with inline + icon. We
+  have sections stacked; Jobber has tabs.
+- **Quote detail sidebar** — Deposit payment settings card
+  (Card/ACH/Require-method toggles), Notes card with + button.
+  We have some of this (round 10's InvoiceSidebar) but Jobber's
+  Quote sidebar is a slimmer 3-toggle variant.
+- **Jobs list + detail** — Jobs list metrics (Ending within 30
+  days / Late / Requires Invoicing / Action Required /
+  Unscheduled), detail page's Scheduled visits table with
+  "Edit all visits" button, Billing section with Invoicing /
+  Reminders tabs (we have the tabs from round 10).
+- **Schedule Month / Week / Day view tabs + color-coded events
+  per team member.** Today's schedule page renders a list;
+  Jobber renders a calendar grid.
+- **Apply ClientCombobox everywhere a client is picked** — this
+  round only wired it into Quick Quote. Next: quote new,
+  project new, schedule new, task new.
+
+### Files added this round
+
+- `app/actions/clients.ts` — `searchClientsAction` + `quickCreateClientAction`
+- `components/client-combobox.tsx`
+- `app/dashboard/quotes/quick/{page.tsx, form.tsx, actions.ts}`
+- `components/active-checklists-widget.tsx`
+- `app/dashboard/workflows/quick-schedule-actions.ts`
+- `app/dashboard/projects/[id]/quick-schedule-step.tsx`
+
+### Earlier wake-up notes kept below for history.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 15 (2026-04-19, overnight)
 
 `npx tsc --noEmit` passes. **One new migration (041)** plus the

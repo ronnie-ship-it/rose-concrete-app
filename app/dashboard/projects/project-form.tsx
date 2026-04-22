@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { type ProjectFormState } from "./actions";
 import { PROJECT_STATUSES } from "./constants";
+import { ClientCombobox } from "@/components/client-combobox";
 
 type ProjectRecord = {
   client_id?: string | null;
@@ -36,28 +37,30 @@ export function ProjectForm({
     <form action={formAction} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label
-            htmlFor="client_id"
-            className="block text-sm font-medium text-neutral-700"
-          >
+          <label className="block text-sm font-medium text-neutral-700">
             Client *
           </label>
-          <select
-            id="client_id"
-            name="client_id"
-            required
-            defaultValue={initial?.client_id ?? ""}
-            className="mt-1 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="" disabled>
-              Choose a client…
-            </option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          {/* Typeahead replaces the classic <select>: recent 5 by
+              default, as-you-type filter, inline "+ New client" row
+              at the bottom. The `clients` prop is still accepted so
+              callers that pre-fetch don't need updating, but the
+              combobox now owns the search. */}
+          <div className="mt-1">
+            <ClientCombobox
+              name="client_id"
+              required
+              initial={
+                initial?.client_id
+                  ? {
+                      id: initial.client_id as string,
+                      name:
+                        clients.find((c) => c.id === initial?.client_id)?.name ??
+                        "",
+                    }
+                  : null
+              }
+            />
+          </div>
           {fe.client_id && (
             <p className="mt-1 text-xs text-red-600">{fe.client_id}</p>
           )}

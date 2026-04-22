@@ -6,6 +6,8 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { money } from "@/lib/format";
 import { PageHeader, Card } from "@/components/ui";
 import { MarketingLeadsWidget } from "@/components/marketing-leads-widget";
+import { ActiveChecklistsWidget } from "@/components/active-checklists-widget";
+import { BusinessPerformance } from "@/components/business-performance";
 
 export default async function DashboardHome() {
   const user = await requireRole(["admin", "office"]);
@@ -239,6 +241,14 @@ export default async function DashboardHome() {
       <PageHeader
         title={`Welcome, ${user.full_name ?? user.email}`}
         subtitle="Rose Concrete operations dashboard"
+        actions={
+          <Link
+            href="/dashboard/quotes/quick"
+            className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+          >
+            ⚡ Quick quote
+          </Link>
+        }
       />
 
       {/* Jobber-style 4-card pipeline summary — headline count + $, two sub-rows */}
@@ -338,6 +348,18 @@ export default async function DashboardHome() {
           value={String(leadsRes.count ?? 0)}
           href="/dashboard/requests?status=new"
         />
+      </div>
+
+      {/* Two-column layout: active checklists on the left (drives
+          Ronnie's day), Jobber-style Business Performance panel on
+          the right (receivables, this-week pipeline, month revenue). */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ActiveChecklistsWidget />
+        </div>
+        <div>
+          <BusinessPerformance />
+        </div>
       </div>
 
       {/* Marketing-site lead attribution — KPIs + per-page volume bar chart. */}

@@ -64,20 +64,20 @@ export function QuoteActions({
           onClick={() => {
             if (
               !confirm(
-                `Convert quote ${quoteNumber} to a job? This accepts the quote on the client's behalf, flips the project to Approved, and seeds the payment schedule.`
+                `Mark quote ${quoteNumber} as approved?\n\nUse this for phone + in-person approvals. We'll flip the project to Approved, seed the 14-step job checklist, and set up the payment schedule.`,
               )
             )
               return;
             start(() => convertToJob());
           }}
-          className="rounded-md bg-accent-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-accent-600 disabled:opacity-60"
+          className="inline-flex min-h-10 items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending ? "Converting…" : "✓ Convert to job"}
+          {pending ? "Approving…" : "✓ Mark as approved"}
         </button>
       )}
       {status === "accepted" && (
         <span className="rounded-md bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-          ✓ Accepted
+          ✓ Approved
         </span>
       )}
       <button

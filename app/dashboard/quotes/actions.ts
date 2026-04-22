@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireUser } from "@/lib/auth";
 import { seedDefaultScheduleFromQuote } from "@/lib/payment-schedules";
+import { seedDefaultJobChecklist } from "@/lib/workflows";
 
 // ---------- helpers ----------
 
@@ -367,6 +368,13 @@ export async function convertQuoteToJobAction(quoteId: string): Promise<void> {
   // Seed the payment schedule. Helper is no-op when flag off or already seeded.
   const seed = await seedDefaultScheduleFromQuote(quote.project_id);
 
+  // Seed the 14-step default job checklist if no service_type-specific
+  // template matched. The service-type seeder already ran via
+  // updateProjectAction's hook; this call is idempotent and only adds
+  // rows when the project is completely empty. Safety net so every
+  // approved quote lands with something Ronnie can schedule from.
+  const checklist = await seedDefaultJobChecklist(quote.project_id);
+
   await supabase.from("activity_log").insert({
     entity_type: "quote",
     entity_id: quoteId,
@@ -376,6 +384,7 @@ export async function convertQuoteToJobAction(quoteId: string): Promise<void> {
       project_id: quote.project_id,
       accepted_total: acceptedTotal,
       schedule_seeded: seed.ok ? seed : { ok: false, error: seed.error },
+      checklist_seeded: checklist,
     },
   });
 

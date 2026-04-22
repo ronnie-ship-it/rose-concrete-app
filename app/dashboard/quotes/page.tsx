@@ -51,12 +51,20 @@ export default async function QuotesPage({
         title="Quotes"
         subtitle={`${quotes?.length ?? 0} shown`}
         actions={
-          <Link
-            href="/dashboard/quotes/new"
-            className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-          >
-            + New quote
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/quotes/quick"
+              className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+            >
+              ⚡ Quick quote
+            </Link>
+            <Link
+              href="/dashboard/quotes/new"
+              className="inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-50"
+            >
+              + New quote
+            </Link>
+          </div>
         }
       />
 

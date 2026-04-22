@@ -9,9 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js --status",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
-    "import:jobber": "tsx scripts/import-jobber.ts"
+    "import:jobber": "tsx scripts/import-jobber.ts",
+    "ship": "node scripts/ship.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
@@ -27,6 +30,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.10",
+    "pg": "^8.13.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/web-push": "^3.6.4",

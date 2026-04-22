@@ -7,6 +7,7 @@ import {
 } from "@/app/dashboard/workflows/actions";
 import type { ProjectWorkflowStep } from "@/lib/workflows";
 import { stepIsStale } from "@/lib/workflows";
+import { QuickScheduleStepButton } from "./quick-schedule-step";
 
 /**
  * Ordered checklist of workflow steps for a project. Each row shows
@@ -118,7 +119,15 @@ export function WorkflowSteps({
                   onChange={(v) => dispatch(s.id, { due_date: v })}
                   disabled={pending}
                 />
-                <div className="flex gap-1">
+                <div className="flex flex-wrap items-center gap-1">
+                  {/* Quick-schedule — one tap expands date+time, saves,
+                      stamps the step AND creates a visit. <30s flow. */}
+                  {s.status !== "done" && (
+                    <QuickScheduleStepButton
+                      stepId={s.id}
+                      defaultDate={s.due_date ?? undefined}
+                    />
+                  )}
                   {s.status === "pending" && (
                     <button
                       type="button"
