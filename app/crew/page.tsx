@@ -1,295 +1,281 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { MarkDoneButton } from "./mark-done-button";
-import { ClockButton } from "./clock-button";
-import { OnMyWayButton } from "./on-my-way-button";
-import { markVisitCompleteAction } from "@/app/dashboard/schedule/actions";
 import { getLangPref } from "@/lib/preferences";
-import { t, tPlural } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { ClockButton } from "./clock-button";
+import { CrewJobCard, type CrewJobCardData } from "./job-card";
+import { CrewHomeMap } from "./home-map";
+import { CreateFab } from "./create-fab";
+import Link from "next/link";
+import { money } from "@/lib/format";
 
-export const metadata = { title: "Today — Rose Concrete" };
+export const metadata = { title: "Home — Rose Concrete" };
 
 function startOfDay(d: Date): Date {
   const out = new Date(d);
   out.setHours(0, 0, 0, 0);
   return out;
 }
-
 function endOfDay(d: Date): Date {
   const out = new Date(d);
   out.setHours(23, 59, 59, 999);
   return out;
 }
-
-function mapsHref(address: string): string {
-  // iOS users get the native Maps handler via this scheme; Android
-  // falls back to Google Maps. Appending `&navigate=yes` bumps it
-  // straight into turn-by-turn on some Android builds.
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`;
+function greeting(d: Date): string {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 /**
- * Crew "Today" — the home screen a crew member sees when they tap
- * into the app. Rewritten 2026-04-19 for full thumb-sized tap
- * targets and a clearer visual hierarchy:
+ * Crew home screen — Jobber mobile parity.
  *
- *   - Each visit is a full-width card with a colored header strip
- *     (amber = upcoming, emerald = completed).
- *   - Two big primary action rows: "Navigate + Call + On my way"
- *     and "Upload photos + Clock + Mark done".
- *   - The photo-upload CTA shows live progress (2 of 3) so crew
- *     members never have to guess whether they've hit the gate.
- *   - All buttons are min-h-14 so they clear iOS' 44-point target.
+ *   ┌───────────────────────────────────┐
+ *   │  Good morning, Alex               │   greeting + first-name
+ *   │  (4 visits · $12,400 today)       │   scaled-down summary
+ *   │                                   │
+ *   │  ┌─────────────────────────────┐  │   "Let's get started" card
+ *   │  │ Let's get started           │  │   w/ primary green clock-in
+ *   │  │ [▶ Clock in]                │  │
+ *   │  └─────────────────────────────┘  │
+ *   │                                   │
+ *   │  [ faux map with job pins ]      │
+ *   │  4 stops today · Route in Maps → │
+ *   │                                   │
+ *   │  Today's jobs ━━━━━━━━━━━━━━━    │   horizontal scroller
+ *   │  [card] [card] [card] →           │
+ *   │                                   │
+ *   │  This week                        │
+ *   │  [card] [card] [card]             │   vertical list
+ *   │                                   │
+ *   └───────────────────────────────────┘
+ *                                   (●)  <- FAB
  */
-export default async function CrewToday() {
-  const user = await requireRole(["crew"]);
+export default async function CrewHome() {
+  const user = await requireRole(["crew", "admin", "office"]);
   const supabase = await createClient();
   const lang = await getLangPref();
 
   const today = new Date();
+  const todayStart = startOfDay(today);
+  const todayEnd = endOfDay(today);
+  const weekEnd = new Date(todayStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
   const { data: visits } = await supabase
     .from("visits")
     .select(
-      "id, scheduled_for, duration_min, status, notes, project:projects(id, name, location, service_address, client:clients(name, phone))",
+      "id, scheduled_for, duration_min, status, notes, project:projects(id, name, location, service_address, revenue_cached, client:clients(name, phone))",
     )
-    .gte("scheduled_for", startOfDay(today).toISOString())
-    .lte("scheduled_for", endOfDay(today).toISOString())
+    .gte("scheduled_for", todayStart.toISOString())
+    .lt("scheduled_for", weekEnd.toISOString())
     .order("scheduled_for", { ascending: true });
 
-  const visitIds = (visits ?? []).map((v) => v.id);
-  const projectIds = Array.from(
-    new Set(
-      (visits ?? [])
-        .map((v) => {
-          const p = Array.isArray(v.project) ? v.project[0] : v.project;
-          return p?.id as string | undefined;
-        })
-        .filter((v): v is string => Boolean(v)),
-    ),
+  // Split into today vs rest-of-week.
+  const todayVisits = (visits ?? []).filter(
+    (v) => new Date(v.scheduled_for) <= todayEnd,
   );
-  const [{ data: openClocks }, { data: photoRows }] = await Promise.all([
-    visitIds.length > 0
-      ? supabase
+  const weekVisits = (visits ?? []).filter(
+    (v) => new Date(v.scheduled_for) > todayEnd,
+  );
+
+  // Any open clock-in for this user on today's visits?
+  const todayVisitIds = todayVisits.map((v) => v.id as string);
+  const { data: openClocks } =
+    todayVisitIds.length > 0
+      ? await supabase
           .from("visit_time_entries")
           .select("visit_id")
           .eq("user_id", user.id)
-          .in("visit_id", visitIds)
+          .in("visit_id", todayVisitIds)
           .is("clock_out_at", null)
-      : Promise.resolve({ data: [] as { visit_id: string }[] }),
-    projectIds.length > 0
-      ? supabase
-          .from("attachments")
-          .select("entity_id, mime_type")
-          .eq("entity_type", "project")
-          .in("entity_id", projectIds)
-          .like("mime_type", "image/%")
-      : Promise.resolve({ data: [] as { entity_id: string; mime_type: string }[] }),
-  ]);
-  const openClockByVisit = new Set(
-    (openClocks ?? []).map((c) => c.visit_id),
+      : { data: [] as { visit_id: string }[] };
+  const openClockSet = new Set((openClocks ?? []).map((c) => c.visit_id));
+  const currentOpenVisit = todayVisits.find((v) =>
+    openClockSet.has(v.id as string),
   );
-  const photoCountByProject = new Map<string, number>();
-  for (const r of photoRows ?? []) {
-    const pid = r.entity_id as string;
-    photoCountByProject.set(pid, (photoCountByProject.get(pid) ?? 0) + 1);
-  }
 
-  const PHOTO_MIN = 3;
+  const toCard = (
+    v: (typeof todayVisits)[number],
+  ): CrewJobCardData => {
+    const project = Array.isArray(v.project) ? v.project[0] : v.project;
+    const client = project?.client
+      ? Array.isArray(project.client)
+        ? project.client[0]
+        : project.client
+      : null;
+    const time = new Date(v.scheduled_for).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    let status: CrewJobCardData["status"] = "upcoming";
+    if (v.status === "completed") status = "completed";
+    else if (v.status === "in_progress" || openClockSet.has(v.id as string))
+      status = "in_progress";
+    else if (new Date(v.scheduled_for) < today && v.status !== "completed")
+      status = "late";
+    return {
+      id: v.id as string,
+      title: project?.name ?? "Visit",
+      time,
+      clientName: client?.name ?? null,
+      address: project?.service_address ?? project?.location ?? null,
+      status,
+      durationMin: v.duration_min as number | null,
+    };
+  };
+
+  const todayCards = todayVisits.map(toCard);
+  const weekCards = weekVisits.map(toCard);
+
+  const completedCount = todayCards.filter((c) => c.status === "completed")
+    .length;
+  const revenueToday = todayVisits.reduce((sum, v) => {
+    const p = Array.isArray(v.project) ? v.project[0] : v.project;
+    return sum + Number(p?.revenue_cached ?? 0);
+  }, 0);
+
+  const firstName = (user.full_name ?? user.email.split("@")[0])
+    .split(/\s+/)[0];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Greeting + summary */}
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
-          {t(lang, "Today")}
+        <h1 className="text-2xl font-extrabold text-[#1a2332] dark:text-white">
+          {greeting(today)}, {firstName}
         </h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">
-          {t(lang, "Hey")} {user.full_name ?? user.email.split("@")[0]} —{" "}
-          {visits?.length ?? 0}{" "}
-          {tPlural(lang, visits?.length ?? 0, "visit", "visits")}{" "}
-          {t(lang, "on your plate.")}
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+          {todayCards.length > 0 ? (
+            <>
+              {todayCards.length} {todayCards.length === 1 ? "visit" : "visits"}
+              {revenueToday > 0 ? (
+                <>
+                  {" · "}
+                  <span className="font-semibold text-[#1a2332] dark:text-white">
+                    {money(revenueToday)}
+                  </span>{" "}
+                  today
+                </>
+              ) : (
+                " today"
+              )}
+              {completedCount > 0 && (
+                <>
+                  {" · "}
+                  <span className="font-semibold text-[#4A7C59]">
+                    {completedCount} complete
+                  </span>
+                </>
+              )}
+              {" · "}
+              <Link
+                href="/crew/schedule"
+                className="text-[#4A7C59] underline"
+              >
+                {t(lang, "View all")}
+              </Link>
+            </>
+          ) : (
+            t(lang, "Nothing scheduled today. Enjoy the breather.")
+          )}
         </p>
       </div>
 
-      {!visits || visits.length === 0 ? (
-        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-brand-700 dark:bg-brand-800">
-          <p className="text-5xl">🏖</p>
-          <p className="mt-3 text-base font-semibold text-neutral-900 dark:text-white">
-            {t(lang, "Nothing scheduled today. Enjoy the breather.")}
+      {/* Let's get started — primary clock-in card */}
+      {todayCards.length > 0 && (
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-800">
+          <h2 className="text-base font-bold text-[#1a2332] dark:text-white">
+            Let&apos;s get started
+          </h2>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            {currentOpenVisit
+              ? `Currently on ${toCard(currentOpenVisit).title} — clock out when you're done.`
+              : `Clock in on your first visit and we'll track the time from there.`}
           </p>
-          <Link
-            href="/crew/schedule"
-            className="mt-4 inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
-          >
-            {t(lang, "This week")} →
-          </Link>
-        </div>
-      ) : (
-        <ul className="space-y-4">
-          {visits.map((v) => {
-            const project = Array.isArray(v.project) ? v.project[0] : v.project;
-            const client =
-              project &&
-              (Array.isArray(project.client) ? project.client[0] : project.client);
-            const address = project?.service_address ?? project?.location ?? null;
-            const time = new Date(v.scheduled_for).toLocaleTimeString(
-              lang === "es" ? "es-US" : "en-US",
-              {
-                hour: "numeric",
-                minute: "2-digit",
-              },
-            );
-            const completed = v.status === "completed";
-            const action = markVisitCompleteAction.bind(null, v.id);
-            const photoCount = project?.id
-              ? photoCountByProject.get(project.id) ?? 0
-              : 0;
-            const photoGateOpen = photoCount >= PHOTO_MIN;
-
-            return (
-              <li
-                key={v.id}
-                className={`overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-brand-800 ${
-                  completed
-                    ? "border-emerald-300 opacity-80"
-                    : "border-neutral-200 dark:border-brand-700"
-                }`}
-              >
-                {/* Colored header strip — time + status at a glance */}
-                <div
-                  className={`flex items-center justify-between px-4 py-2 text-sm font-bold text-white ${
-                    completed
-                      ? "bg-emerald-600"
-                      : openClockByVisit.has(v.id)
-                        ? "bg-amber-600"
-                        : "bg-brand-600"
-                  }`}
-                >
-                  <span>{time}</span>
-                  <span className="text-xs uppercase tracking-wider opacity-90">
-                    {completed
-                      ? `✓ ${t(lang, "Marked complete")}`
-                      : openClockByVisit.has(v.id)
-                        ? t(lang, "Clock in") // currently clocked in
-                        : `${v.duration_min}m`}
-                  </span>
-                </div>
-
-                <div className="space-y-3 p-4">
-                  <div>
-                    <p className="text-lg font-bold text-neutral-900 dark:text-white">
-                      {project?.name ?? "—"}
-                    </p>
-                    {client?.name && (
-                      <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                        {client.name}
-                      </p>
-                    )}
-                  </div>
-
-                  {v.notes && (
-                    <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
-                      {v.notes}
-                    </p>
-                  )}
-
-                  {/* Primary row — Navigate / Call. Full-width thumb targets. */}
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {address && (
-                      <a
-                        href={mapsHref(address)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex min-h-14 items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 active:bg-neutral-50"
-                      >
-                        <span className="text-lg">📍</span>
-                        <span className="truncate">
-                          {address.split(",")[0]}
-                        </span>
-                      </a>
-                    )}
-                    {client?.phone && (
-                      <a
-                        href={`tel:${client.phone}`}
-                        className="flex min-h-14 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white active:bg-emerald-700"
-                      >
-                        <span className="text-lg">📞</span>
-                        <span>
-                          {t(lang, "Call")} {client.name?.split(/\s+/)[0]}
-                        </span>
-                      </a>
-                    )}
-                  </div>
-
-                  {!completed && (
-                    <>
-                      {/* Clock in/out + On my way */}
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <ClockButton
-                          visitId={v.id}
-                          isOpen={openClockByVisit.has(v.id)}
-                          lang={lang}
-                        />
-                        <OnMyWayButton visitId={v.id} lang={lang} />
-                      </div>
-
-                      {/* Photo upload — the most prominent action on every
-                          visit. Big CTA, live count, color flips green when
-                          gate satisfied. */}
-                      {project && (
-                        <Link
-                          href={`/crew/upload?project_id=${project.id}`}
-                          className={`flex min-h-16 items-center justify-between gap-3 rounded-lg px-4 text-base font-bold shadow-sm active:opacity-80 ${
-                            photoGateOpen
-                              ? "bg-emerald-100 text-emerald-900"
-                              : "bg-brand-600 text-white"
-                          }`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="text-2xl">📷</span>
-                            <span>
-                              {photoGateOpen
-                                ? t(lang, "Add photo")
-                                : t(lang, "Upload a photo")}
-                            </span>
-                          </span>
-                          <span
-                            className={`rounded-full px-3 py-1 text-sm font-bold ${
-                              photoGateOpen
-                                ? "bg-emerald-600 text-white"
-                                : "bg-white/20 text-white"
-                            }`}
-                          >
-                            {photoCount}/{PHOTO_MIN}
-                          </span>
-                        </Link>
-                      )}
-
-                      {/* Mark complete + Forms */}
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <MarkDoneButton
-                          action={action}
-                          projectId={project?.id}
-                          photoCount={photoCount}
-                          lang={lang}
-                        />
-                        {project && (
-                          <Link
-                            href={`/crew/form?visit_id=${v.id}&project_id=${project.id}`}
-                            className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-700 active:bg-neutral-50"
-                          >
-                            📝 {t(lang, "Forms")}
-                          </Link>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+          <div className="mt-3">
+            {currentOpenVisit ? (
+              <ClockButton
+                visitId={currentOpenVisit.id as string}
+                isOpen={true}
+                lang={lang}
+              />
+            ) : (
+              <ClockButton
+                visitId={todayCards[0].id}
+                isOpen={false}
+                lang={lang}
+              />
+            )}
+          </div>
+        </section>
       )}
+
+      {/* Map preview */}
+      {todayVisits.length > 0 && (
+        <CrewHomeMap
+          pins={todayVisits.map((v) => {
+            const p = Array.isArray(v.project) ? v.project[0] : v.project;
+            return {
+              id: v.id as string,
+              address: (p?.service_address ?? p?.location) as string | null,
+            };
+          })}
+          allAddresses={todayVisits
+            .map((v) => {
+              const p = Array.isArray(v.project) ? v.project[0] : v.project;
+              return (p?.service_address ?? p?.location) as string | null;
+            })
+            .filter((a): a is string => Boolean(a))}
+        />
+      )}
+
+      {/* Today's jobs — horizontal scroller */}
+      {todayCards.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-bold text-[#1a2332] dark:text-white">
+              {t(lang, "Today")}
+            </h2>
+            <Link
+              href="/crew/schedule"
+              className="text-xs font-semibold text-[#4A7C59]"
+            >
+              {t(lang, "View all")} →
+            </Link>
+          </div>
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+            {todayCards.map((c) => (
+              <CrewJobCard key={c.id} visit={c} variant="rail" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* This week — vertical list */}
+      {weekCards.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-base font-bold text-[#1a2332] dark:text-white">
+            {t(lang, "This week")}
+          </h2>
+          <div className="space-y-2">
+            {weekCards.slice(0, 5).map((c) => (
+              <CrewJobCard key={c.id} visit={c} />
+            ))}
+          </div>
+          {weekCards.length > 5 && (
+            <Link
+              href="/crew/schedule"
+              className="mt-3 block text-center text-sm font-semibold text-[#4A7C59]"
+            >
+              See all {weekCards.length} →
+            </Link>
+          )}
+        </section>
+      )}
+
+      <CreateFab />
     </div>
   );
 }

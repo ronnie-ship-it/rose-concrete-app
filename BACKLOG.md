@@ -2,6 +2,126 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 18 (2026-04-21, overnight)
+
+`npx tsc --noEmit` passes clean. **No new SQL migrations this round**
+— everything shipped is UI/route work against existing tables. Run
+`npm run migrate:status` to confirm nothing is pending from earlier
+rounds (will report "no new migrations" if your DB is current).
+
+### The theme: rebuild the crew mobile app to Jobber parity
+
+Every screen a crew member touches on their phone has been rewritten
+to match the Jobber mobile app pixel-for-pixel (within the limits of
+Tailwind + emoji vs. Jobber's custom iconset). The bottom-nav, visit
+flow, timesheet, search, and More menu now behave like native Jobber
+tabs — no more "custom screen that works but feels like a web page."
+
+### What shipped this round
+
+- **5-tab bottom nav** (`app/crew/bottom-nav.tsx`) — Home / Schedule
+  / Timesheet / Search / More. Active tab = `#4A7C59` green with a
+  2px bar along the top edge. Tap target 56px min, safe-area-inset
+  padding for iOS home indicator. Active detection uses `usePathname`
+  with per-tab `match(path)` so query params don't break the highlight.
+- **Crew Home** (`app/crew/page.tsx`) — "Good morning, Alex" greeting
+  + inline summary (`4 visits · $12,400 today · 1 complete · View all`),
+  "Let's get started" card with one tappable ClockButton, faux map
+  with numbered pins + "Route in Maps" CTA, horizontal "Today" rail
+  of job cards (280px wide), vertical "This week" list, dark `#1a2332`
+  circular FAB bottom-right (opens a bottom-sheet with Upload / Form
+  / Log cash / Search).
+- **Crew Schedule** (`app/crew/schedule/page.tsx` + `week-strip.tsx`
+  + `view-toggle.tsx` + `day-grid.tsx`) — Month label + dropdown arrow
+  top-left, Day/List/Map toggle top-right, Sunday-anchored `S M T W T
+  F S` strip with today circled green and selected day filled, visit
+  counts badged on each day. Body swaps between:
+    • **Day** — hour grid 6am–8pm with colored blocks sized by
+      `duration_min`, tap → visit detail
+    • **List** — stacked CrewJobCards with colored left border
+    • **Map** — reused CrewHomeMap for the selected day
+- **Crew Search** (`app/crew/search/page.tsx` + `search-ui.tsx`) —
+  Filter pills (Clients / Requests / Quotes / Jobs) that toggle on
+  second tap, rounded search input with magnifier, 300ms debounce
+  pushes `?q=…&kind=…` into the URL, server unions 4 tables into a
+  typed Row[] (kind = `client` | `project` | `quote` | `lead`) with
+  kind-specific emoji icons. "Recently active" header shown when
+  query is empty. First 50 results only.
+- **Crew Visit Detail** (`app/crew/visits/[id]/page.tsx` +
+  `visit-tabs.tsx` + `visit-actions-bar.tsx` + `actions.ts`) —
+    • Header row: ← back + ☎ phone icon (tel: to client)
+    • Status badge with emoji (🚛 Upcoming / 🚧 In progress / ✅
+      Completed) in appropriate color
+    • Bold project name, green subtitle (client · $revenue), tappable
+      address that opens Google Maps
+    • Side-by-side **Directions** + **On my way** buttons
+    • Primary green **Start Visit** → **Complete Visit** action bar +
+      `⋯` overflow menu (Upload photos / Start a form / Reschedule /
+      Open project)
+    • Two-tab **Visit Details** / **Notes** switcher with 2px green
+      underline indicator
+    • Details tab renders: accepted-quote line items (with `+` button
+      to add more), Schedule card (date + duration + completed-at),
+      Team list with initials avatars and a pulsing green dot next to
+      anyone currently clocked in on the visit, and (if you're
+      assigned and visit isn't completed) your own Clock In/Out CTA.
+    • Notes tab is a textarea bound to `visits.notes` with a green
+      Save button, instant `Saved ✓` confirmation.
+    • Three new server actions: `startVisitAction`, `completeVisitAction`
+      (also closes any open clock-in for this user), `saveVisitNotesAction`.
+- **Crew More menu** (`app/crew/more/page.tsx`) — Company logo header
+  card (🌹 Rose Concrete + "Signed in as …"), 2×1 big-tile grid
+  (**Apps** → `/dashboard/settings/integrations`, **Marketing** →
+  `/dashboard/settings/reviews`), grouped row lists:
+    • Support & updates — Support (mailto) / Subscription (office-only)
+      / Product updates / Refer a concrete pro (mailto) / About
+    • Account — Profile / Manage team (office-only) / Company details
+      (office-only) / Preferences
+  Red, full-width **🚪 Log out** button posts to `/auth/signout`.
+- **Crew Timesheet** (`app/crew/timesheet/page.tsx` + `week-nav.tsx`)
+  — Big 4xl total at the top (`32h 45m`), week-range subtitle, prev /
+  this-week / next arrows below. Body is seven day cards (Sun→Sat)
+  with per-day totals and per-entry rows: pulsing-green dot for open
+  clocks, project title + client + `8:02a – 11:30a` time range + right-
+  aligned duration. Tap an entry → visit detail. Empty days render "No
+  hours." All data comes from `visit_time_entries` joined to visits →
+  projects → clients, scoped to the signed-in user.
+
+### Files added / changed this round
+
+- **New:**
+  `app/crew/visits/[id]/page.tsx`
+  `app/crew/visits/[id]/actions.ts`
+  `app/crew/visits/[id]/visit-tabs.tsx`
+  `app/crew/visits/[id]/visit-actions-bar.tsx`
+  `app/crew/more/page.tsx`
+  `app/crew/timesheet/page.tsx`
+  `app/crew/timesheet/week-nav.tsx`
+  (Earlier in this round, pre-summary:
+  `app/crew/bottom-nav.tsx`, `app/crew/top-bar.tsx`,
+  `app/crew/job-card.tsx`, `app/crew/home-map.tsx`,
+  `app/crew/create-fab.tsx`, `app/crew/schedule/week-strip.tsx`,
+  `app/crew/schedule/view-toggle.tsx`, `app/crew/schedule/day-grid.tsx`,
+  `app/crew/search/page.tsx`, `app/crew/search/search-ui.tsx`.)
+- **Rewritten:** `app/crew/layout.tsx`, `app/crew/page.tsx`,
+  `app/crew/schedule/page.tsx`.
+
+### Known gaps / tomorrow
+
+- No push notifications yet when a visit is assigned to crew; the
+  service worker is installed but we don't `subscribe()` yet.
+- Visit Line Items tab reads from the accepted quote — if a project
+  has no quote, we show "No line items yet." Next step: let crew add
+  ad-hoc line items that sync back to the project.
+- Timesheet shows your own hours only. Office/admin needs a team
+  view at `/dashboard/timesheet` (doesn't exist yet).
+- Crew More menu "Subscription" / "Product updates" point at the best
+  existing routes but neither page is purpose-built yet.
+- Desktop dashboard redesign per `jobber-deep-ui-audit.md` is still
+  pending — tonight focused on crew mobile only.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 17 (2026-04-20, overnight)
 
 `npx tsc --noEmit` passes. **No new SQL migrations this round** —

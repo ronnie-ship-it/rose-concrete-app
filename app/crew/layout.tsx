@@ -1,77 +1,42 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { SignOutButton } from "@/components/sign-out-button";
-import { LangToggle } from "@/components/lang-toggle";
-import { getLangPref } from "@/lib/preferences";
-import { t } from "@/lib/i18n";
 import { ServiceWorkerRegister } from "./sw-register";
+import { BottomNav } from "./bottom-nav";
+import { CrewTopBar } from "./top-bar";
 
+/**
+ * Crew PWA chrome — Jobber-mobile parity.
+ *
+ * Layout:
+ *   - Sticky top bar: date on left, bell + sparkle on right.
+ *   - Scrollable main content (max-w-lg so tablets don't stretch).
+ *   - Fixed bottom nav: 5 tabs (Home / Schedule / Timesheet / Search
+ *     / More). iOS safe-area padding baked in.
+ *
+ * Colors:
+ *   Primary green: #4A7C59
+ *   Dark text:     #1a2332
+ *   Background:    #f5f5f5
+ */
 export default async function CrewLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Admin can preview the crew PWA too; office is redirected to /dashboard.
-  const [user, lang] = await Promise.all([
-    requireRole(["crew"]),
-    getLangPref(),
-  ]);
+  // Admin/office previews the crew PWA for QA; keeping both roles
+  // enabled because prior flows depend on it.
+  await requireRole(["crew", "admin", "office"]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20 dark:bg-brand-900">
+    <div
+      className="min-h-screen bg-[#f5f5f5] dark:bg-neutral-950"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0) + 72px)",
+      }}
+    >
       <ServiceWorkerRegister />
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white dark:border-brand-700 dark:bg-brand-800">
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
-          <Link
-            href="/crew"
-            className="text-lg font-bold text-brand-600 dark:text-white"
-          >
-            Rose Concrete
-          </Link>
-          <div className="flex items-center gap-2">
-            <LangToggle initial={lang} />
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-      <main className="px-4 py-6">
-        <p className="mb-4 text-xs text-neutral-500 dark:text-neutral-400">
-          {t(lang, "Signed in as")} {user.full_name ?? user.email}
-        </p>
-        {children}
-      </main>
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-neutral-200 bg-white dark:border-brand-700 dark:bg-brand-800">
-        <div className="mx-auto flex max-w-md items-center justify-around py-2 text-xs">
-          <Link
-            href="/crew"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-neutral-700"
-          >
-            <span className="text-lg">📅</span>
-            <span>{t(lang, "Today")}</span>
-          </Link>
-          <Link
-            href="/crew/schedule"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-neutral-700"
-          >
-            <span className="text-lg">🗓</span>
-            <span>{t(lang, "Week")}</span>
-          </Link>
-          <Link
-            href="/crew/upload"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-neutral-700"
-          >
-            <span className="text-lg">📷</span>
-            <span>{t(lang, "Upload")}</span>
-          </Link>
-          <Link
-            href="/crew/form"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-neutral-700"
-          >
-            <span className="text-lg">📝</span>
-            <span>{t(lang, "Forms")}</span>
-          </Link>
-        </div>
-      </nav>
+      <CrewTopBar today={new Date()} />
+      <main className="mx-auto max-w-lg px-4 py-4">{children}</main>
+      <BottomNav />
     </div>
   );
 }

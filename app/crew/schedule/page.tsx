@@ -2,134 +2,200 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { getLangPref } from "@/lib/preferences";
 import { t } from "@/lib/i18n";
+import { CrewJobCard, type CrewJobCardData } from "../job-card";
+import { WeekStrip } from "./week-strip";
+import { ViewToggle, type ScheduleView } from "./view-toggle";
+import { DayGrid, type DayGridVisit } from "./day-grid";
+import { CrewHomeMap } from "../home-map";
 
-export const metadata = { title: "My week — Rose Concrete" };
+export const metadata = { title: "Schedule — Rose Concrete" };
 
-function startOfWeek(d: Date): Date {
+type SearchParams = Promise<{ d?: string; view?: string }>;
+
+function weekStartIso(d: Date): string {
+  // Sunday-anchored (matches Jobber mobile's S M T W T F S strip).
   const day = d.getDay();
-  const diff = (day + 6) % 7;
-  const out = new Date(d);
-  out.setDate(d.getDate() - diff);
-  out.setHours(0, 0, 0, 0);
-  return out;
+  const start = new Date(d);
+  start.setDate(d.getDate() - day);
+  start.setHours(12, 0, 0, 0);
+  return start.toISOString().slice(0, 10);
+}
+function normalizeView(raw: string | undefined): ScheduleView {
+  if (raw === "day" || raw === "list" || raw === "map") return raw;
+  return "list";
+}
+function toCardStatus(s: string): CrewJobCardData["status"] {
+  if (s === "completed" || s === "cancelled") return "completed";
+  if (s === "in_progress") return "in_progress";
+  return "upcoming";
 }
 
-function addDays(d: Date, n: number): Date {
-  const out = new Date(d);
-  out.setDate(d.getDate() + n);
-  return out;
-}
-
-export default async function CrewWeek() {
-  await requireRole(["crew"]);
+/**
+ * Crew schedule — Jobber-mobile parity.
+ *   - Month label + dropdown arrow (top left)
+ *   - Day / List / Map segmented toggle (top right)
+ *   - S M T W T F S week strip (today circled green)
+ *   - Body swaps with the view toggle:
+ *       Day  — hour-grid with colored blocks
+ *       List — stacked visit cards with colored border
+ *       Map  — faux map with pins + Route CTA
+ */
+export default async function CrewSchedule({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const user = await requireRole(["crew", "admin", "office"]);
   const supabase = await createClient();
   const lang = await getLangPref();
-  // Date formatter locale — Spanish users see "lunes, abr 19" instead
-  // of "Monday, Apr 19". Day labels localize via toLocaleDateString.
-  const dateLocale = lang === "es" ? "es-US" : "en-US";
+  const sp = await searchParams;
 
-  const weekStart = startOfWeek(new Date());
-  const weekEnd = addDays(weekStart, 7);
+  const today = new Date();
+  const selectedIso = sp.d ?? today.toISOString().slice(0, 10);
+  const view = normalizeView(sp.view);
+  const weekStart = weekStartIso(new Date(selectedIso + "T12:00:00"));
+  const weekStartDate = new Date(weekStart + "T00:00:00");
+  const weekEnd = new Date(weekStartDate);
+  weekEnd.setDate(weekEnd.getDate() + 7);
 
-  const { data: visits } = await supabase
+  const { data: weekVisits } = await supabase
     .from("visits")
     .select(
-      "id, scheduled_for, duration_min, status, project:projects(id, name, location, service_address, client:clients(name, phone))"
+      "id, scheduled_for, duration_min, status, project:projects(id, name, location, service_address, client:clients(name))",
     )
-    .gte("scheduled_for", weekStart.toISOString())
+    .gte("scheduled_for", weekStartDate.toISOString())
     .lt("scheduled_for", weekEnd.toISOString())
     .order("scheduled_for", { ascending: true });
 
-  // Bucket by day.
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const buckets = new Map<string, typeof visits>();
-  for (const d of days) buckets.set(d.toDateString(), []);
-  for (const v of visits ?? []) {
-    const key = new Date(v.scheduled_for).toDateString();
-    buckets.get(key)?.push(v);
-  }
+  const all = (weekVisits ?? []).map((v) => {
+    const p = Array.isArray(v.project) ? v.project[0] : v.project;
+    const client = p?.client
+      ? Array.isArray(p.client)
+        ? p.client[0]
+        : p.client
+      : null;
+    const iso = new Date(v.scheduled_for).toISOString().slice(0, 10);
+    return {
+      id: v.id as string,
+      iso,
+      raw: v.scheduled_for as string,
+      duration: v.duration_min as number | null,
+      status: v.status as string,
+      title: (p?.name ?? "Visit") as string,
+      clientName: (client?.name as string | null) ?? null,
+      address: (p?.service_address ?? p?.location ?? null) as string | null,
+    };
+  });
+
+  const counts: Record<string, number> = {};
+  for (const v of all) counts[v.iso] = (counts[v.iso] ?? 0) + 1;
+  const selectedDay = all.filter((v) => v.iso === selectedIso);
+
+  const monthLabel = weekStartDate.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-neutral-900">
-        {t(lang, "This week")}
-      </h1>
-      <div className="space-y-4">
-        {days.map((d) => {
-          const dayVisits = buckets.get(d.toDateString()) ?? [];
-          const isToday = new Date().toDateString() === d.toDateString();
-          return (
-            <section key={d.toISOString()}>
-              <h2
-                className={`text-xs font-semibold uppercase tracking-wide ${
-                  isToday ? "text-brand-600" : "text-neutral-500"
-                }`}
-              >
-                {d.toLocaleDateString(dateLocale, {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </h2>
-              {dayVisits.length === 0 ? (
-                <p className="mt-1 text-xs text-neutral-400">—</p>
-              ) : (
-                <ul className="mt-2 space-y-2">
-                  {dayVisits.map((v) => {
-                    const project = Array.isArray(v.project)
-                      ? v.project[0]
-                      : v.project;
-                    const client = project?.client
-                      ? Array.isArray(project.client)
-                        ? project.client[0]
-                        : project.client
-                      : null;
-                    const address =
-                      project?.service_address ?? project?.location ?? null;
-                    const time = new Date(v.scheduled_for).toLocaleTimeString(
-                      dateLocale,
-                      { hour: "numeric", minute: "2-digit" }
-                    );
-                    return (
-                      <li
-                        key={v.id}
-                        className="rounded-md border border-neutral-200 bg-white p-3 text-sm shadow-sm"
-                      >
-                        <p className="font-semibold text-neutral-900">
-                          {time} · {project?.name ?? "—"}
-                        </p>
-                        {client && (
-                          <p className="mt-0.5 text-xs text-neutral-600">
-                            {client.name}
-                            {client.phone && (
-                              <a
-                                href={`tel:${client.phone}`}
-                                className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"
-                              >
-                                📞 {t(lang, "Call")}
-                              </a>
-                            )}
-                          </p>
-                        )}
-                        {address && (
-                          <a
-                            href={`https://www.google.com/maps/?q=${encodeURIComponent(address)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-flex rounded-md border border-neutral-300 bg-neutral-50 px-2 py-0.5 text-[11px] text-neutral-700"
-                          >
-                            📍 {address}
-                          </a>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          );
-        })}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="inline-flex items-center gap-1 text-xl font-extrabold text-[#1a2332] dark:text-white">
+          {monthLabel}
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5 text-neutral-500"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </h1>
+        <ViewToggle value={view} />
       </div>
+
+      <WeekStrip start={weekStart} selected={selectedIso} counts={counts} />
+
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-[#1a2332] dark:text-white">
+            {user.full_name ?? user.email.split("@")[0]}
+          </h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {selectedDay.length}{" "}
+            {selectedDay.length === 1 ? "visit" : "visits"}
+            {" · "}
+            {formatDayLabel(selectedIso)}
+          </p>
+        </div>
+      </div>
+
+      {selectedDay.length === 0 ? (
+        <EmptyCard lang={lang} />
+      ) : view === "day" ? (
+        <DayGrid
+          visits={selectedDay.map(
+            (v): DayGridVisit => ({
+              id: v.id,
+              scheduled_for: v.raw,
+              duration_min: v.duration,
+              title: v.title,
+              clientName: v.clientName,
+              status: toCardStatus(v.status),
+            }),
+          )}
+        />
+      ) : view === "map" ? (
+        <CrewHomeMap
+          pins={selectedDay.map((v) => ({ id: v.id, address: v.address }))}
+          allAddresses={selectedDay
+            .map((v) => v.address)
+            .filter((a): a is string => Boolean(a))}
+        />
+      ) : (
+        <div className="space-y-2">
+          {selectedDay.map((v) => (
+            <CrewJobCard
+              key={v.id}
+              visit={{
+                id: v.id,
+                title: v.title,
+                time: new Date(v.raw).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
+                clientName: v.clientName,
+                address: v.address,
+                status: toCardStatus(v.status),
+                durationMin: v.duration,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatDayLabel(iso: string): string {
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function EmptyCard({ lang }: { lang: "en" | "es" }) {
+  return (
+    <div className="rounded-xl bg-white p-8 text-center shadow-sm dark:bg-neutral-800">
+      <p className="text-5xl">🏖</p>
+      <p className="mt-3 text-base font-semibold text-[#1a2332] dark:text-white">
+        {t(lang, "Nothing scheduled today. Enjoy the breather.")}
+      </p>
     </div>
   );
 }
