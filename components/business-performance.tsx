@@ -100,36 +100,41 @@ export async function BusinessPerformance() {
   );
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm dark:border-brand-700 dark:bg-brand-800">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+    <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm dark:border-jobber-line dark:bg-jobber-card">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500 dark:text-jobber-text-2">
         Business performance
       </h2>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 divide-y divide-neutral-100 dark:divide-jobber-line">
         {/* Receivables */}
         <Link
           href="/dashboard/payments"
-          className="block rounded-md border border-neutral-100 p-3 hover:bg-neutral-50 dark:border-brand-700 dark:hover:bg-brand-900/50"
+          className="group flex flex-col gap-1 py-3 hover:bg-neutral-50 dark:hover:bg-white/5"
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <p className="text-sm font-bold text-neutral-900 dark:text-white">
               Receivables
             </p>
-            <span className="text-xs text-neutral-400">
-              {receivableClients.length}{" "}
-              {receivableClients.length === 1 ? "client" : "clients"}
+            <span className="text-neutral-400 group-hover:text-neutral-700 dark:group-hover:text-white">
+              ›
             </span>
           </div>
-          <p className="mt-1 text-xl font-bold text-neutral-900 dark:text-white">
+          <p className="text-[11px] text-neutral-500 dark:text-jobber-text-2">
+            {receivableClients.length}{" "}
+            {receivableClients.length === 1 ? "client owes you" : "clients owe you"}
+          </p>
+          <p className="text-xl font-extrabold text-neutral-900 dark:text-white">
             {money(totalReceivables)}
           </p>
           {receivableClients.slice(0, 3).map((c) => (
             <p
               key={c.name}
-              className="mt-0.5 flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-300"
+              className="flex items-center justify-between text-[11px] text-neutral-600 dark:text-jobber-text-2"
             >
               <span className="truncate">{c.name}</span>
-              <span className="font-semibold">{money(c.balance)}</span>
+              <span className="font-semibold text-neutral-800 dark:text-white">
+                {money(c.balance)}
+              </span>
             </p>
           ))}
         </Link>
@@ -137,18 +142,23 @@ export async function BusinessPerformance() {
         {/* Upcoming jobs this week */}
         <Link
           href="/dashboard/schedule?view=week"
-          className="block rounded-md border border-neutral-100 p-3 hover:bg-neutral-50 dark:border-brand-700 dark:hover:bg-brand-900/50"
+          className="group flex flex-col gap-0.5 py-3 hover:bg-neutral-50 dark:hover:bg-white/5"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            Upcoming jobs
-          </p>
-          <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-neutral-900 dark:text-white">
+              Upcoming jobs
+            </p>
+            <span className="text-neutral-400 group-hover:text-neutral-700 dark:group-hover:text-white">
+              ›
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-500 dark:text-jobber-text-2">
             This week
           </p>
-          <p className="mt-1 text-xl font-bold text-neutral-900 dark:text-white">
+          <p className="text-xl font-extrabold text-neutral-900 dark:text-white">
             {money(weekRevenue)}
           </p>
-          <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+          <p className="text-[11px] text-neutral-500 dark:text-jobber-text-2">
             {seenProjects.size}{" "}
             {seenProjects.size === 1 ? "project" : "projects"}
           </p>
@@ -157,26 +167,36 @@ export async function BusinessPerformance() {
         {/* Revenue this month */}
         <Link
           href="/dashboard/reports"
-          className="block rounded-md border border-neutral-100 p-3 hover:bg-neutral-50 dark:border-brand-700 dark:hover:bg-brand-900/50"
+          className="group flex flex-col gap-0.5 py-3 hover:bg-neutral-50 dark:hover:bg-white/5"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            Revenue
-          </p>
-          <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-neutral-900 dark:text-white">
+              Revenue
+            </p>
+            <span className="text-neutral-400 group-hover:text-neutral-700 dark:group-hover:text-white">
+              ›
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-500 dark:text-jobber-text-2">
             This month so far
           </p>
-          <p className="mt-1 text-xl font-bold text-neutral-900 dark:text-white">
+          <p className="text-xl font-extrabold text-neutral-900 dark:text-white">
             {money(monthRevenue)}
           </p>
         </Link>
 
         {/* Upcoming payouts — placeholder until Stripe lands */}
-        <div className="rounded-md border border-dashed border-neutral-200 p-3 dark:border-brand-700">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <div className="py-3">
+          <p className="text-sm font-bold text-neutral-900 dark:text-white">
             Upcoming payouts
           </p>
-          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-            Configure Stripe / QBO Payments to see payouts here.
+          <p className="mt-1 flex items-center justify-between text-[11px] text-neutral-500 dark:text-jobber-text-2">
+            <span>On its way to your bank</span>
+            <span>—</span>
+          </p>
+          <p className="flex items-center justify-between text-[11px] text-neutral-500 dark:text-jobber-text-2">
+            <span>Processing payout</span>
+            <span>—</span>
           </p>
         </div>
       </div>

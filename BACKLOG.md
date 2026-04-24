@@ -2,6 +2,130 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 19 (2026-04-24, overnight)
+
+`npx tsc --noEmit` passes clean. **No new SQL migrations this round** —
+UI-only changes against the same schema.
+
+### The theme: desktop dashboard rebuilt for Jobber parity
+
+Per the April UI audit (`jobber-deep-ui-audit.md`), dark mode is now
+structurally 1:1 with Jobber's desktop app. Ronnie's first impression
+on login will be the same greeting + workflow + today's appointments
+layout he's used to from Jobber.
+
+### What shipped this round
+
+- **Jobber palette** added to `tailwind.config.ts` under the `jobber.*`
+  namespace. Tokens: `bg` (`#121619`), `nav` (`#1A1E22`), `card`
+  (`#1F252A`), `line` (`#2A323A`), `text` / `text-2` / `text-3`, plus
+  accents `green` (`#8FBF4A`), `gold` (`#E8B74A`), `pink` (`#D46B7E`),
+  `cyan` (`#4FA8E0`), `red` (`#E0443C`). Light mode still uses the
+  existing brand.* tokens; dark mode activates the Jobber palette.
+- **`components/dashboard-shell.tsx`** — full rewrite. Narrower 160px
+  sidebar (expanded) / 64px collapsed, Jobber-ordered nav groups
+  (Home/Schedule — Clients/Requests/Quotes/Jobs/Invoices/Payments —
+  Pipeline/Messages/Workflows/Expenses/Cash journal/Activity —
+  Settings), pill-shaped active state, small green `R` logo tile,
+  inline CreateMenu inside the sidebar, sticky top bar with account
+  name on the left and search/create/bell/theme on the right,
+  collapse chevron at the bottom. State persisted in localStorage
+  (`rc:sidebar-collapsed`).
+- **`app/dashboard/page.tsx`** — full rewrite for Jobber home parity:
+    • Small gray date label (`Tuesday, April 24`) + huge greeting
+      (`Good afternoon, Ronnie`)
+    • **Workflow strip** — four cards with 4px colored top borders
+      (gold/pink/green/cyan) matching Jobber 1:1. Each card shows:
+      column icon + title, big 4xl headline number, optional `$` sub,
+      bold status label, two clickable sub-rows filtering to specific
+      statuses (Requests: Assessments complete + Overdue; Quotes:
+      Draft + Changes requested; Jobs: Active + Action required;
+      Invoices: Draft + Past due).
+    • `<TodaysAppointments>` panel (see below)
+    • `<ActiveChecklistsWidget>` kept as-is underneath
+    • Right rail: `<HighlightedCard>` (Gmail connect upsell, dismissible)
+      + `<BusinessPerformance>`
+- **`components/todays-appointments.tsx`** — new Jobber-parity panel.
+    • Five-tile summary row: Total / Active / Completed / Overdue /
+      Remaining — all in $. Active goes green, Overdue goes red when
+      non-zero.
+    • Rounded-pill `Visit | Employee` toggle (URL-driven via
+      `?appts=employee`) → new
+      `components/todays-appointments-toggle.tsx`.
+    • Server-side bucketing of each visit into OVERDUE / ACTIVE /
+      REMAINING / COMPLETED based on scheduled_for+duration vs now
+      (OVERDUE = past end time with non-completed status, ACTIVE =
+      now ∈ [start, end), REMAINING = future, COMPLETED = explicit).
+    • Each row: colored left accent bar (green active / red overdue /
+      gray remaining+completed), `Client — Project` title (completed
+      rows rendered in muted strikethrough), time range,
+      overlapping-initials avatar chips (2px ring, up to 3), right-
+      aligned revenue. Rows link to `/dashboard/schedule/{id}`.
+    • Employee view re-groups the same rows under each assignee's
+      name, showing their workload count.
+    • `View Schedule` pill CTA in the top-right of the panel.
+- **`components/highlighted-card.tsx`** — dismissible upsell card for
+  the right rail. Ships wired to "Connect Gmail" (→
+  `/dashboard/settings/gmail-watch`). Dismissal stored in
+  `localStorage` under `rc:highlight-dismissed-{key}` so closing
+  sticks.
+- **`components/business-performance.tsx`** — retuned for Jobber dark.
+  Swapped `dark:border-brand-700` / `dark:bg-brand-800` for
+  `dark:border-jobber-line` / `dark:bg-jobber-card`. The card now
+  uses stacked dividers (no per-row border) so the visual rhythm
+  matches Jobber. Each row shows a chevron (›) on the right that
+  goes full white on hover. Upcoming payouts shows the two
+  Jobber-parity sub-rows ("On its way to your bank" / "Processing
+  payout") with em-dashes until Stripe payouts land.
+
+### Files added / changed this round
+
+- **New:**
+  `components/todays-appointments.tsx`
+  `components/todays-appointments-toggle.tsx`
+  `components/highlighted-card.tsx`
+- **Rewritten:**
+  `app/dashboard/page.tsx`
+  `components/dashboard-shell.tsx`
+  `components/business-performance.tsx`
+- **Extended:** `tailwind.config.ts` (jobber.* palette tokens)
+
+### Already-in-place items Ronnie re-mentioned
+
+These were shipped in earlier rounds and verified present tonight:
+
+- **Quote creation does NOT require a project first.** `/dashboard/
+  quotes/new` redirects to `/dashboard/quotes/quick` unless
+  `project_id=` or `legacy=1` is in the URL. See
+  `app/dashboard/quotes/new/page.tsx`.
+- **ClientCombobox everywhere a client is picked** — typeahead with
+  5 recent clients on open + inline `+ New client` create. See
+  `components/client-combobox.tsx` and its call sites
+  (`app/dashboard/projects/project-form.tsx`, quote/quick form, etc.).
+- **14-step job checklist auto-seeds** on quote approval via
+  `seedDefaultJobChecklist()` in `lib/workflows.ts`, invoked by
+  `convertQuoteToJobAction`.
+- **Automatic migrations:** `scripts/migrate.js` reads `migrations/*.sql`
+  in lexical order, hashes each file, applies unseen ones, tracks in
+  `migrations_log`. Run via `npm run migrate`.
+
+### Known gaps / tomorrow
+
+- **Clients list KPI strip** — the Jobber audit calls for a 3-card
+  row above the table (New leads 30d / New clients 30d / YTD new
+  clients). Not built yet; table itself is already Jobber-parity.
+- **Client detail** — Jobber layout has two columns with a sticky
+  right rail (Overview / Last communication / Notes) and several
+  info call-out strips (Add Contact / Add Property / etc). Current
+  Rose Concrete version has the Work Overview tabs but not the
+  right rail.
+- **Quote detail / Quote builder** — Jobber renders line items in a
+  large table with per-line photo attachment. Ours is simpler.
+- **Jobs list** — Jobber's has toggle chips for One-off / Recurring
+  and color-coded progress bars. Ours is a plain table.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 18 (2026-04-21, overnight)
 
 `npx tsc --noEmit` passes clean. **No new SQL migrations this round**

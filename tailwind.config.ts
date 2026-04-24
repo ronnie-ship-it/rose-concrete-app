@@ -56,6 +56,26 @@ const config: Config = {
           200: "#e8dcbc",
           300: "#d8c692",
         },
+        // ---- Jobber dark-mode parity palette ----
+        // Pulled from the April 2026 UI audit (see
+        // jobber-deep-ui-audit.md).  These feed the Jobber-style
+        // dashboard shell + home page so dark mode matches Jobber
+        // 1:1 structurally.  Light mode uses the existing brand.*
+        // tokens.
+        jobber: {
+          bg:        "#121619", // main content bg
+          nav:       "#1A1E22", // sidebar bg
+          card:      "#1F252A", // card / panel bg
+          line:      "#2A323A", // 1px dividers + card borders
+          text:      "#FFFFFF", // primary text
+          "text-2":  "#AAB2BA", // secondary text
+          "text-3":  "#6B7580", // muted / strikethrough
+          green:     "#8FBF4A", // appointment green, upsell tags
+          gold:      "#E8B74A", // requests column
+          pink:      "#D46B7E", // quotes column
+          cyan:      "#4FA8E0", // invoices column
+          red:       "#E0443C", // notification red
+        },
       },
       fontFamily: {
         sans: ["system-ui", "sans-serif"],
