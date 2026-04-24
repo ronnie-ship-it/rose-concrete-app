@@ -109,20 +109,40 @@ These were shipped in earlier rounds and verified present tonight:
   in lexical order, hashes each file, applies unseen ones, tracks in
   `migrations_log`. Run via `npm run migrate`.
 
+### Clients list also got Jobber parity in this round
+
+- **`app/dashboard/clients/page.tsx`** rewritten:
+    • 3-card KPI strip at the top: **New leads** (past 30d with
+      ↓/↑% delta vs prior 30d), **New clients** (same), **Total
+      new clients** (year to date). Deltas render as green ↑ or
+      red ↓ pills, hidden when the delta is near-zero.
+    • `+ New Client` primary green pill + `⋯ More Actions` outlined
+      pill in the header (matches Jobber's two-button header exactly).
+    • `Filtered clients (N results)` heading inside the card above
+      the table (Jobber shows this count inline).
+    • Rounded-full search input with magnifier icon.
+    • Status pill renders as a small dot + label (● Active /
+      ● Archived) to match Jobber's pill style.
+    • Full Jobber dark-palette rewrite — every `brand-*` color swapped
+      for `jobber-*` tokens.
+
 ### Known gaps / tomorrow
 
-- **Clients list KPI strip** — the Jobber audit calls for a 3-card
-  row above the table (New leads 30d / New clients 30d / YTD new
-  clients). Not built yet; table itself is already Jobber-parity.
 - **Client detail** — Jobber layout has two columns with a sticky
   right rail (Overview / Last communication / Notes) and several
   info call-out strips (Add Contact / Add Property / etc). Current
   Rose Concrete version has the Work Overview tabs but not the
-  right rail.
+  right rail. Avoided tonight — the page is 560 lines with lots of
+  panels and a surgical right-rail fit needs its own session.
 - **Quote detail / Quote builder** — Jobber renders line items in a
   large table with per-line photo attachment. Ours is simpler.
 - **Jobs list** — Jobber's has toggle chips for One-off / Recurring
   and color-coded progress bars. Ours is a plain table.
+- **Schedule** — Jobber's calendar shows a month grid + daily rail
+  at the top; ours uses a simpler list per day.
+- **Light-mode styling** — Jobber's light mode isn't documented in
+  the audit and Ronnie runs in dark, so light mode still uses the
+  existing brand.* tokens. Will look slightly "old" next to dark.
 
 ---
 
