@@ -31,45 +31,47 @@ type Action = {
 };
 
 // Order from TOP to BOTTOM — matches Jobber's screenshot order.
+// All routes are under /crew/create/* so the FAB stays inside the
+// crew app instead of bouncing the user to the office desktop forms.
 const ACTIONS: Action[] = [
   {
-    href: "/dashboard/requests/new",
+    href: "/crew/create/request",
     label: "Request",
     iconPath:
       "M3 12V5h18v7M3 12l3 7h12l3-7M9 12h6",
   },
   {
-    href: "/dashboard/tasks",
+    href: "/crew/create/task",
     label: "Task",
     iconPath:
       "M8 4h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM10 4V3a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1M9 12l2 2 4-4",
   },
   {
-    href: "/dashboard/expenses/new",
+    href: "/crew/create/expense",
     label: "Expense",
     iconPath:
       "M12 2v20M17 5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6",
   },
   {
-    href: "/dashboard/payments",
+    href: "/crew/create/invoice",
     label: "Invoice",
     iconPath:
       "M5 3h11l4 4v14H5V3zM12 8v8M9 11h6M9 14h4",
   },
   {
-    href: "/dashboard/quotes/quick",
+    href: "/crew/create/quote",
     label: "Quote",
     iconPath:
       "M7 3h10l4 4v14H3V3h4M3 8h6l1 2h2M11 13a3 3 0 1 0 3 3M14 16l3 3",
   },
   {
-    href: "/dashboard/projects/new",
+    href: "/crew/create/job",
     label: "Job",
     iconPath:
       "M12 3l4 4-2 2-1-1-7 7-2-2 7-7-1-1zM5 19l3-3 4 4-3 3a2 2 0 0 1-3-3l-1-1z",
   },
   {
-    href: "/dashboard/clients/new",
+    href: "/crew/create/client",
     label: "Client",
     iconPath:
       "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-3.3 3.6-6 8-6s8 2.7 8 6",

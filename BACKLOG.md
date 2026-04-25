@@ -2,6 +2,125 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 21 (2026-04-24, FAB create flows)
+
+`npx tsc --noEmit` passes clean. **No new SQL migrations** —
+the existing `clients`, `tasks`, `expenses`, `leads` schemas covered
+every new form.
+
+### What shipped this round
+
+Thomas uploaded 25 more Jobber iOS screenshots covering every flow
+the FAB launches: New Client, New Request, New Task, New Expense,
+New Invoice, New Quote (template picker), New Job. The crew app
+now has full Jobber-mobile create flows under `/crew/create/*`,
+each pixel-matched to the screenshots.
+
+- **`app/crew/create/chrome.tsx`** — shared chrome + form atoms used
+  by every "New X" page:
+    • `<CrewCreateChrome>` — sticky header (X close → router.back,
+      bold centered title, sparkle on right) + sticky green save
+      footer. Hides the global crew bottom-nav AND top-bar while
+      mounted, so the form takes the full screen exactly like
+      Jobber's iOS modal.
+    • Form atoms: `<FieldInput>`, `<FieldTextarea>`, `<FieldStacked>`
+      (Material-style label-on-top), `<PickerButton>` (big
+      "🔍 Select Existing Client" green-text card), `<AddLink>`
+      (green "+ Add foo" row), `<DropdownRow>`, `<ToggleRow>`,
+      `<SectionLabel>`, `<SectionRow>`, `<SectionSpacer>`,
+      `<PlusButton>`.
+- **`app/crew/create/actions.ts`** — server actions:
+    • `createClientFromCrewAction(formData)` — INSERTs a row into
+      `clients` and routes to `/dashboard/clients/{id}`.
+    • `createTaskFromCrewAction(formData)` — INSERTs into `tasks`
+      with `source='crew_app'`, `status='open'`, optional `due_at`.
+    • `createExpenseFromCrewAction(formData)` — INSERTs into
+      `expenses` with vendor/note/amount/expense_date.
+    • `createRequestFromCrewAction(formData)` — INSERTs a `leads`
+      row with `source='crew_app'`, `status='new'`.
+  All actions accept the crew role + admin/office (`requireRole(
+  ["crew", "admin", "office"])`).
+- **`/crew/create/client`** — Add From Contacts button + first/last
+  name inputs + Add Company / Phone / Email / Lead Source / Property
+  Address rows. Saves to `clients`.
+- **`/crew/create/request`** — Client picker + Request title +
+  "Request form" section with "How can we help?" textarea + image
+  uploader (0/10) + Line items + Schedule rows. Save Request → leads
+  row.
+- **`/crew/create/task`** — Title + Description + Client + Schedule
+  (date picker) + Team row. Save → tasks row.
+- **`/crew/create/expense`** — Title + Description + Date (pre-fills
+  today) + Total + Reimburse-to + Accounting code + Linked job +
+  Receipt upload. Save → expenses row.
+- **`/crew/create/invoice`** — full invoice form: Billed-to picker,
+  client fields, Overview (title / Issued / Payment terms /
+  Salesperson), Line items, Subtotal / Discount / Tax / Total card,
+  Invoice payment settings (Accept card / ACH / partial toggles),
+  Client message, Contract / Disclaimer. "Review and Send" routes
+  to `/dashboard/payments`.
+- **`/crew/create/quote`** — template picker matching the screenshot
+  exactly: gray "Use template" header + 6 hardcoded Rose Concrete
+  templates ("Basic Sidewalk Repair…", "Driveway Template", etc.).
+  Tapping a template routes to `/dashboard/quotes/quick?template=…`.
+  "Create New Quote" footer button starts a blank quick quote.
+- **`/crew/create/job`** — full job form: client info + Overview
+  (title + Instructions + Salesperson) + Line items + Subtotal +
+  Schedule with inline 6×7 month calendar (today highlighted in
+  green), Schedule-later toggle, Team row, Invoicing reminder
+  toggle. Save → /dashboard/projects/new.
+- **`app/crew/create-fab.tsx`** — every action now points at
+  `/crew/create/*` instead of bouncing to dashboard routes. The
+  user stays inside the crew PWA the entire time.
+
+### Operational changes
+
+- **`scripts/ship.mjs`** — now runs `tsc --noEmit` BEFORE pushing.
+  If typecheck fails the script exits non-zero with a clear error,
+  preventing broken builds from reaching Vercel. Skippable with
+  `--skip-typecheck` if you know what you're doing.
+- **`CLAUDE.md`** — new project-level memory file at the repo root.
+  It tells future Claude sessions to ALWAYS run `npm run ship` at
+  the end of every turn that touched files. Includes the full
+  end-of-session workflow (typecheck → migrate → BACKLOG note →
+  ship) and house style notes (primary green = `#1A7B40`, never
+  use `#4A7C59`).
+
+### Files added / changed this round
+
+- **New:**
+  `CLAUDE.md`
+  `app/crew/create/chrome.tsx`
+  `app/crew/create/actions.ts`
+  `app/crew/create/client/page.tsx`
+  `app/crew/create/request/page.tsx`
+  `app/crew/create/task/page.tsx`
+  `app/crew/create/expense/page.tsx`
+  `app/crew/create/invoice/page.tsx`
+  `app/crew/create/quote/page.tsx`
+  `app/crew/create/job/page.tsx`
+- **Modified:**
+  `app/crew/create-fab.tsx` (FAB destinations now /crew/create/*)
+  `scripts/ship.mjs` (typecheck gate + --skip-typecheck flag)
+
+### Known gaps / tomorrow
+
+- The "Add Company Name", "Add Phone Number", etc. green links on
+  the client form are static — tapping them doesn't reveal an
+  input the way Jobber does. We render the corresponding input
+  rows always-visible underneath instead.
+- The Job form's calendar widget is read-only — it shows the
+  current month but doesn't let you actually pick a day yet.
+- Invoice "Review and Send" routes to `/dashboard/payments` rather
+  than running a real review-and-send flow. Same for Quote / Job —
+  they hand off to the existing dashboard create routes.
+- Image / receipt upload buttons render but don't do anything
+  yet. Wiring them to `/api/upload` (existing) is a small follow-up.
+- Salesperson + Reimburse-to + Accounting code dropdowns are
+  decorative — they show the right value but don't actually open
+  pickers.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 20 (2026-04-24, screenshot rebuild)
 
 `npx tsc --noEmit` passes clean. **No new SQL migrations this round** —

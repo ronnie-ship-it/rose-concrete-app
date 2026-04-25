@@ -26,6 +26,9 @@ const args = process.argv.slice(2);
 const flags = {
   dryRun: args.includes("--dry-run"),
   noPush: args.includes("--no-push"),
+  // --skip-typecheck keeps the option to push fast when the typecheck
+  // is broken on a known-but-tolerable issue. Default is to typecheck.
+  skipTypecheck: args.includes("--skip-typecheck"),
   message:
     args.includes("--message") || args.includes("-m")
       ? args[Math.max(args.indexOf("--message"), args.indexOf("-m")) + 1]
@@ -50,6 +53,31 @@ try {
 } catch {
   console.error("[ship] Not a git repo. Run `git init` first.");
   process.exit(1);
+}
+
+// Typecheck before we ship — a green tsc gate is far cheaper than a
+// broken Vercel deploy. Skippable with --skip-typecheck if the user
+// knows the build is broken but still wants to push.
+//
+// We invoke the TS compiler via `node` directly (not `./node_modules/.bin/tsc`)
+// so this works the same on Windows + macOS + Linux without relying on
+// the shell finding the bin shim.
+if (!flags.skipTypecheck && !flags.dryRun) {
+  console.log("[ship] Running typecheck (tsc --noEmit)…");
+  const tscPath = join(root, "node_modules", "typescript", "bin", "tsc");
+  try {
+    execSync(`node "${tscPath}" --noEmit`, {
+      cwd: root,
+      stdio: "inherit",
+    });
+    console.log("[ship] ✓ typecheck clean");
+  } catch {
+    console.error("\n[ship] ✗ typecheck FAILED.");
+    console.error(
+      "[ship] Fix the errors above, or pass --skip-typecheck if you really want to push.",
+    );
+    process.exit(1);
+  }
 }
 
 // Anything staged / unstaged / untracked?
