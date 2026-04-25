@@ -84,7 +84,6 @@ const driveways: Service = {
     "#3 rebar grid (or fiber-mesh on smaller pours)",
     "Saw-cut control joints to prevent random cracking",
     "Choice of finish: broom, smooth-trowel, or stamped",
-    "Sealer coat to protect against oil and UV",
     "Final cleanup and walk-through",
     "Workmanship warranty in writing",
   ],
@@ -103,7 +102,7 @@ const driveways: Service = {
     },
     {
       title: "Finish, cure, and walk-through",
-      body: "Finish to your chosen texture, saw-cut control joints, and seal. Park on it inside a week.",
+      body: "Finish to your chosen texture and saw-cut control joints. Park on it inside a week.",
     },
   ],
   whyUs:
@@ -111,9 +110,9 @@ const driveways: Service = {
   typicalCost: {
     heading: "What does a driveway replacement cost?",
     rangeSentence:
-      "Most San Diego driveway replacements run $8–$14 per square foot depending on tear-out, reinforcement, and finish. Stamped or decorative finishes add $4–$8/sqft on top.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Stamped, stained, or exposed-aggregate finishes add to that baseline depending on pattern, color, and material spec.",
     exampleSentence:
-      "A typical 400-square-foot driveway lands between $3,200 and $5,600 with a broom finish. The same driveway with a stamped finish runs $4,800–$8,800.",
+      "Demo and haul-off, base re-grade or import, reinforcement spec, finish choice, drainage work, and access (narrow side yards add labor) each shape the final number. We give you a fixed-price written quote at the on-site walk so you see the math before you commit.",
     factors: [
       "Total square footage",
       "Demo and haul-off of the existing slab",
@@ -172,7 +171,6 @@ const patios: Service = {
     "Choice of finish: broom, stamped, smooth, swirled, or stained",
     "Decorative scoring or borders if desired",
     "Saw-cut control joints",
-    "Sealer to protect color and prevent staining",
   ],
   process: [
     {
@@ -188,8 +186,8 @@ const patios: Service = {
       body: "Pour 3500-psi mix in a single day, then finish to your chosen texture before it sets.",
     },
     {
-      title: "Cure and seal",
-      body: "Saw-cut control joints, let it cure 7 days, then apply sealer to lock in color and protect against stains.",
+      title: "Cure",
+      body: "Saw-cut control joints and let it cure 7 days before furniture, 14 days before heavy use.",
     },
   ],
   whyUs:
@@ -197,9 +195,9 @@ const patios: Service = {
   typicalCost: {
     heading: "What does a concrete patio cost?",
     rangeSentence:
-      "Most San Diego patios run $9–$11 per square foot for broom finish, $14–$18 for stamped or stained, and $11–$15 for exposed aggregate.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Stamped, stained, or exposed-aggregate finishes add to that baseline depending on pattern, color, and material spec.",
     exampleSentence:
-      "A typical 300-square-foot patio lands between $2,700 and $3,300 broomed, or $4,200–$5,400 stamped with integral color and a sealer.",
+      "Site prep (grass, pavers, demo), base import, reinforcement spec, finish choice, color, drainage planning, and any border or scoring detail each shape the final number. We give you a fixed-price written quote at the on-site walk so you see the math before you commit.",
     factors: [
       "Total square footage",
       "Site prep (grass removal, demo, base import)",
@@ -208,13 +206,12 @@ const patios: Service = {
       "Color choice (integral pigment, surface stain, or both)",
       "Drainage planning (slope, channel drains)",
       "Border or scoring details",
-      "Sealer choice (matte, satin, gloss, anti-slip)",
     ],
   },
   faqs: [
     {
       q: "Stamped or broomed — which is better?",
-      a: "Broomed is the workhorse — slip-resistant, lower cost, classic look. Stamped looks like tile, slate, or wood-grain but costs more and needs re-sealing every few years. If the patio sits in full sun and you want a high-end look, stamped is great. If it's a workhorse for kids and pets, broomed is honest.",
+      a: "Broomed is the workhorse — slip-resistant, lower cost, classic look. Stamped looks like tile, slate, or wood-grain but costs more and the surface stain (if you choose surface stain over integral color) does fade over time. If the patio sits in full sun and you want a high-end look, stamped is great. If it's a workhorse for kids and pets, broomed is honest.",
     },
     {
       q: "How long does a new patio take from quote to done?",
@@ -283,9 +280,9 @@ const walkways: Service = {
   typicalCost: {
     heading: "What does a sidewalk or walkway cost?",
     rangeSentence:
-      "Most San Diego sidewalk repairs run $7–$13 per square foot. Walkways in private yards run $9–$14/sqft (smaller pours are less efficient than driveway-sized jobs).",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Smaller pours (front walks, single-panel sidewalk repairs) tend to be less labor-efficient than larger jobs, so per-sqft pricing on small work is at the higher end of the range.",
     exampleSentence:
-      "A typical 4×20 sidewalk panel replacement lands between $560 and $1,040. A front walk from the sidewalk to your front door (about 60 sqft) runs $540–$840.",
+      "If your sidewalk is in the City of San Diego and you have a Safe Sidewalks Program notice, see our Safe Sidewalks page — that program has its own pricing structure ($3,500 minimum + surveyor fee, with a city contribution applied to your notice). Otherwise, this is straight private-pay sidewalk or walkway work.",
     factors: [
       "Linear feet of sidewalk being replaced",
       "Number of panels demoed vs spot-repaired",
@@ -294,7 +291,7 @@ const walkways: Service = {
       "ADA cross-slope requirements",
       "Width to existing block standard",
       "Inspection scheduling",
-      "Safe Sidewalks Program eligibility (city covers a portion if cited)",
+      "Safe Sidewalks Program eligibility (City of San Diego addresses only — National City and other cities don't have this program)",
     ],
   },
   faqs: [
@@ -342,7 +339,6 @@ const decorative: Service = {
     "Base prep and proper drainage slope",
     "Pour with integral color or post-pour stain",
     "Stamp or score work while the slab is still workable",
-    "Sealer matched to the finish (matte, satin, or gloss)",
     "Maintenance instructions for the long haul",
     "Workmanship warranty in writing",
   ],
@@ -360,25 +356,24 @@ const decorative: Service = {
       body: "While the slab is still workable, we apply the stamping mats or cut the score lines you picked.",
     },
     {
-      title: "Stain and seal",
-      body: "If you chose a stain, we apply it after cure. Then we seal with a finish matched to your look (matte, satin, gloss).",
+      title: "Stain (optional)",
+      body: "If you chose a surface stain on top of integral color, we apply it after the slab cures.",
     },
   ],
   whyUs:
-    "Stamped and stained finishes are where bad crews get exposed. The pattern bleeds, the color washes out, the seal turns yellow. We do all the finishing in-house — same hands that pour, stamp, stain, and seal — so you get the look you signed up for.",
+    "Stamped and stained finishes are where bad crews get exposed. The pattern bleeds, the color washes out. We do all the finishing in-house — same hands that pour, stamp, and stain — so you get the look you signed up for.",
   // Migration 029 added decorative_concrete enum value — cleanly typed now.
   typicalCost: {
     heading: "What does decorative concrete cost?",
     rangeSentence:
-      "Decorative finishes typically add $4–$8 per square foot on top of the base concrete cost. Total: $12–$22/sqft for stamped, $11–$16/sqft for stained, $14–$20/sqft for combined stamp + stain.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Decorative finishes — stamped, stained, scored, or polished — add to that baseline depending on pattern complexity, color depth, and any accent work.",
     exampleSentence:
-      "A 400-sqft stamped patio with integral color and a sealer typically lands between $5,600 and $7,200. The same patio with broom-finish concrete would be $3,200–$4,400.",
+      "A single-stamp slate pattern in a single integral color is at the lower end of the decorative range. Multi-stamp ashlar with surface stain on top of integral color and accent score-line borders is at the top. We give you a fixed-price written quote at the on-site walk so you see the math before you commit.",
     factors: [
       "Base concrete cost (square footage × thickness)",
       "Pattern complexity (single-stamp is base; multi-stamp ashlar adds)",
       "Color depth (integral pigment is base; surface stain adds)",
       "Border or accent score lines",
-      "Sealer choice (matte, satin, gloss, anti-slip)",
       "Whether overlay on existing slab is possible",
       "Decorative scoring or saw-cut detail work",
     ],
@@ -390,7 +385,7 @@ const decorative: Service = {
     },
     {
       q: "How long does the color last?",
-      a: "Integral color (mixed into the concrete) lasts the lifetime of the slab. Surface stain depends on the type and how often it's re-sealed — figure 5-7 years before a refresh on a high-sun patio.",
+      a: "Integral color (mixed into the concrete) lasts the lifetime of the slab. Surface stain depends on the stain type and sun exposure — figure 5–7 years before a refresh on a high-sun patio.",
     },
     {
       q: "Can decorative concrete go on top of my existing patio?",
@@ -398,7 +393,7 @@ const decorative: Service = {
     },
     {
       q: "Does it need special maintenance?",
-      a: "Light pressure-wash once a year, re-seal every 3-5 years depending on sun exposure. We'll send you maintenance instructions specific to your finish.",
+      a: "A light pressure-wash once a year is the main upkeep. We'll send you maintenance instructions specific to your finish.",
     },
     {
       q: "Is it slippery when wet?",
@@ -428,7 +423,6 @@ const exposed: Service = {
     "Base prep and forms to standard concrete spec",
     "Pour with seeded aggregate at the surface",
     "Wash technique to expose the right amount of stone",
-    "Sealer to lock in stones and brighten color",
     "Maintenance instructions",
     "Workmanship warranty",
   ],
@@ -446,8 +440,8 @@ const exposed: Service = {
       body: "Aggregate is broadcast onto the surface and pressed into the wet concrete with a roller.",
     },
     {
-      title: "Wash and seal",
-      body: "Time it right — wash off the surface paste to expose the stones, then seal once cured.",
+      title: "Wash",
+      body: "Time it right — wash off the surface paste at the right moment to expose the stones cleanly.",
     },
   ],
   whyUs:
@@ -466,12 +460,8 @@ const exposed: Service = {
       a: "Aggregate type and color — yes, if we can identify the original stones. Sun-aging will leave a visible seam between old and new for a year or two until the new section weathers in.",
     },
     {
-      q: "How often does the sealer need to be reapplied?",
-      a: "Every 3-5 years depending on sun exposure and traffic. Sealer keeps the stones bright and prevents staining.",
-    },
-    {
       q: "Is it more expensive than broomed concrete?",
-      a: "A bit — the aggregate adds material cost and the wash step adds labor. Most jobs run 15-25% more than standard broomed. Worth it on slopes and around pools.",
+      a: "A bit — the aggregate adds material cost and the wash step adds labor. Worth it on slopes and around pools where slip resistance matters.",
     },
   ],
   serviceTypeForForm: "exposed_aggregate",
@@ -524,9 +514,9 @@ const paving: Service = {
   typicalCost: {
     heading: "What does concrete paving cost?",
     rangeSentence:
-      "Smaller paving jobs run $9–$14 per square foot. Smaller pours are less efficient than full-driveway-sized jobs, so per-sqft pricing is usually higher than a big slab.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Smaller pours (under ~400 sq ft) tend to be less labor-efficient than driveway-sized jobs, so per-sqft pricing on small work is at the higher end.",
     exampleSentence:
-      "A typical 100-sqft walking path lands between $900 and $1,400. A 200-sqft RV-trailer parking pad runs $1,800–$2,800.",
+      "Slab thickness (4-inch standard, 6-inch for heavy loads), demo of the existing surface, base import if needed, permits if working in the right-of-way, and finish choice each shape the final number.",
     factors: [
       "Square footage (smaller = higher per-sqft)",
       "Slab thickness (4-inch standard, 6-inch for heavy loads)",

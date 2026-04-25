@@ -46,13 +46,13 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
   "National City": {
     metaTitle: "Concrete Contractor in National City | Rose Concrete",
     metaDescription:
-      "Concrete contractor serving National City. Driveways, patios, sidewalks, and Safe Sidewalks Program work. Veteran-owned, CA License #1130763. (619) 537-9408.",
+      "Concrete contractor serving National City. Driveways, patios, sidewalks, and private-pay sidewalk repair. Veteran-owned, CA License #1130763. (619) 537-9408.",
     h1: "Concrete Contractor in National City",
     localContext:
-      "National City is one of the oldest cities in San Diego County, and the housing stock shows it — most of the single-family homes were built between 1940 and the 1970s, which means a lot of original concrete is now hitting end-of-life. Cracked driveways, lifted sidewalks, and sunken aprons are the most common calls we get from National City homeowners.\n\nWe also do a fair amount of Safe Sidewalks Program work in National City — the city has been actively issuing notices, and the program splits the cost so it's the right time to address it. We handle the paperwork.",
+      "National City is one of the oldest cities in San Diego County, and the housing stock shows it — many of the single-family homes are decades old, which means a lot of original concrete is now hitting end-of-life. Cracked driveways, lifted sidewalks, and sunken aprons are the most common calls we get from National City homeowners.\n\nNote: the City of San Diego's Safe Sidewalks Program does NOT apply to National City — National City is its own incorporated city. Sidewalk repair here is private-pay. If you've gotten a sidewalk-related notice from National City directly, call us and we'll walk through what your options are.",
     whyHere:
-      "We pour across National City regularly — the older neighborhoods west of I-805 especially. We know the typical driveway widths, the city's sidewalk specs, and which permits the city actually requires. Local enough to be efficient, in-house enough to be accountable.",
-    zipCodes: ["91950", "91951"],
+      "We pour across National City regularly — the older neighborhoods west of I-805 especially. We know the typical driveway widths and which permits National City actually requires. Local enough to be efficient, in-house enough to be accountable.",
+    zipCodes: ["91950"],
   },
   "City Heights": {
     metaTitle: "Concrete Contractor in City Heights, San Diego | Rose Concrete",
@@ -62,7 +62,7 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
     localContext:
       "City Heights is dense mid-city San Diego — older bungalows and Spanish revival homes on smaller lots, lots of detached single-car garages, and narrower-than-suburban driveways. The most common concrete jobs here are sidewalk repair (the city has been active on Safe Sidewalks Program notices), driveway replacement on tight lots, and small backyard patios where every square foot counts.\n\nOlder homes in City Heights often have original concrete from the 1920s-1940s, so the failures are deeper than just hairlines — many slabs need full tear-out rather than spot repair.",
     whyHere:
-      "Tight lots, narrow access, and older sub-base conditions are normal for City Heights jobs — we handle them without surprise change orders. Spanish for the crews where it helps with neighbor coordination, and we know which streets the concrete truck can actually reach.",
+      "Tight lots, narrow access, and older sub-base conditions are normal for City Heights jobs — we handle them without surprise change orders. We know which streets the concrete truck can actually reach.",
     zipCodes: ["92105", "92115"],
   },
   "Solana Beach": {
@@ -73,7 +73,7 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
     localContext:
       "Solana Beach is North County coastal — beach-oriented architecture, expensive lots, and a strong preference for hardscape that matches the aesthetic of the home. Most calls here are for decorative driveways, stamped patios, and pool decks — homeowners aren't looking for the cheapest pour, they're looking for the one that holds up to ocean air and looks right.\n\nCoastal homes have specific concrete considerations — salt air can corrode under-spec rebar, and many lots have clay or fill that needs proper base prep before a slab will last.",
     whyHere:
-      "We pour to coastal spec when the location calls for it — proper rebar coverage, sealer choices that handle salt and UV, and finish work that matches the look of the home. Veteran-owned, fully insured, and Ronnie does every site visit himself.",
+      "We pour to coastal spec when the location calls for it — proper rebar coverage and finish work that matches the look of the home. Veteran-owned, fully insured, and Ronnie does every site visit himself.",
     zipCodes: ["92075"],
   },
   "University City": {
@@ -82,7 +82,7 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
       "Concrete contractor in University City. Driveways, patios, retaining walls. Veteran-owned. CA License #1130763. (619) 537-9408.",
     h1: "Concrete Contractor in University City",
     localContext:
-      "University City — the residential area around UCSD, north of I-5 — is largely a 1960s-1980s planned community. Driveways and walkways from that era are now hitting their second life cycle, and we get a steady stream of full-replacement and extension jobs from UC homeowners.\n\nMany University City lots have HOA design guidelines that affect what finishes are allowed. We work with the HOA's submittal package so the new work passes design review.",
+      "University City — the residential area around UCSD, between I-5 and I-805 north of La Jolla — is largely a 1960s-1980s planned community. Driveways and walkways from that era are now hitting their second life cycle, and we get a steady stream of full-replacement and extension jobs from UC homeowners.\n\nMany University City lots have HOA design guidelines that affect what finishes are allowed. We work with the HOA's submittal package so the new work passes design review.",
     whyHere:
       "UC homeowners typically want the job done right and out of the way — we schedule tightly, communicate the day-by-day plan in writing, and clean up so you don't notice the crew was there.",
     zipCodes: ["92122"],
@@ -96,7 +96,7 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
       "La Mesa is east-county hill country — older established neighborhoods on hillside lots, lots of mid-century homes with sloped driveways and grade-change patios. Retaining walls, hillside driveways, and properly drained patios are the bread-and-butter of what we pour in La Mesa.\n\nGrade and drainage are the main differences from a flat-lot pour. We design the slope and drainage into the quote — it's not an afterthought.",
     whyHere:
       "Hillside concrete is engineered work — proper footings, integrated drainage, and the right reinforcement so the slab doesn't slide downhill in five years. We've poured enough hillside La Mesa lots to know what works.",
-    zipCodes: ["91941", "91942", "91943", "91944"],
+    zipCodes: ["91941", "91942"],
   },
   "Chula Vista": {
     metaTitle: "Concrete Contractor in Chula Vista | Rose Concrete",
@@ -148,20 +148,20 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
       "Concrete contractor in Point Loma. Coastal hillside driveways, decorative patios, retaining walls. CA License #1130763. (619) 537-9408.",
     h1: "Concrete Contractor in Point Loma",
     localContext:
-      "Point Loma is the peninsula — ocean views, hillside lots, expensive real estate, and significant grade changes on most properties. Many Point Loma jobs combine concrete and engineering: a retaining wall to support a hillside driveway, a graded patio that drains away from the house instead of into the foundation, or a pool deck that has to handle the ocean-view sloping lot.\n\nCoastal location matters too — salt air drives our rebar coverage spec and sealer choice, so the work lasts.",
+      "Point Loma is the peninsula — ocean views, hillside lots, expensive real estate, and significant grade changes on most properties. Many Point Loma jobs combine concrete and engineering: a retaining wall to support a hillside driveway, a graded patio that drains away from the house, or a pool deck that has to handle the ocean-view sloping lot.\n\nCoastal location matters too — salt air drives our rebar coverage spec, so the work lasts.",
     whyHere:
-      "Hillside lots, ocean-air durability, and the price-point of Point Loma homes mean shortcuts come back to bite. We pour properly the first time — proper rebar, proper drainage, proper sealer.",
+      "Hillside lots, ocean-air durability, and the price-point of Point Loma homes mean shortcuts come back to bite. We pour properly the first time — proper rebar coverage, proper drainage, and finish work that matches the look of the home.",
     zipCodes: ["92106", "92107"],
   },
   "Coronado": {
     metaTitle: "Concrete Contractor in Coronado | Rose Concrete",
     metaDescription:
-      "Concrete contractor on Coronado island. Historic-home driveways, decorative patios, and pool decks. CA License #1130763. (619) 537-9408.",
+      "Concrete contractor in Coronado. Historic-home driveways, decorative patios, and pool decks. CA License #1130763. (619) 537-9408.",
     h1: "Concrete Contractor in Coronado",
     localContext:
-      "Coronado is a historic island community — premium aesthetics, water-table considerations, and many homes with historic-overlay design rules. Most concrete work in Coronado leans decorative: stamped patios, exposed-aggregate pool decks, and driveways that match the architectural style of the home.\n\nThe water table on Coronado is high. Drainage planning matters more than on most mainland lots, and we always integrate drainage into the pour spec.",
+      "Coronado is a historic coastal community on the peninsula across from downtown San Diego — premium aesthetics, water-table considerations, and many homes with historic-overlay design rules. Most concrete work in Coronado leans decorative: stamped patios, exposed-aggregate pool decks, and driveways that match the architectural style of the home.\n\nThe water table is high in much of Coronado. Drainage planning matters more than on most mainland lots, and we always integrate drainage into the pour spec.",
     whyHere:
-      "Coronado homeowners typically want the look and durability dialed in — we deliver both. Sample boards at the quote, finish work done in-house, and a sealer rated for island salt and sun.",
+      "Coronado homeowners typically want the look and durability dialed in — we deliver both. Sample boards at the quote, finish work done in-house, and salt-air-spec rebar coverage so the work holds up.",
     zipCodes: ["92118"],
   },
   "Bonita": {

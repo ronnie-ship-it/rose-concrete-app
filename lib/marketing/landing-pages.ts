@@ -88,7 +88,8 @@ const safeSidewalks: LandingPage = {
     "If you got a Safe Sidewalks Program notice from the City of San Diego, take a breath. The notice means the inspector flagged a section of sidewalk in front of your house as a trip hazard or in poor condition — but it does NOT mean you have to pay for the whole repair, and it does NOT mean you have to figure the process out alone.\n\nThe Safe Sidewalks Program is the city's cost-sharing program for sidewalk repair. Qualifying homeowners pay a portion of the repair cost; the city covers the rest. The program also fast-tracks the permit and inspection so the work doesn't drag on for months.\n\nWe've poured a lot of these. We know the program rules, the inspector expectations, the form-and-pour spec the city wants, and the paperwork. You call us, we walk the site, give you a quote with the city's contribution factored in, and handle the rest.",
   whatYouGet: [
     "Free on-site assessment of the cited sidewalk section",
-    "Quote with the city's Safe Sidewalks Program contribution clearly itemized",
+    "Fixed-price quote — $3,500 minimum (covers up to ~150 sq ft) plus surveyor fee, itemized",
+    "Surveyor coordination and paperwork: $1,000 if the property monument doesn't need to be reset, $2,000 if it does (added to the final bill)",
     "Help filling out and submitting the program paperwork",
     "Permit pulled on your behalf",
     "Demo of the cracked or lifted sidewalk panels",
@@ -143,21 +144,22 @@ const safeSidewalks: LandingPage = {
     },
   ],
   costContext:
-    "Safe Sidewalks Program cost depends on the linear feet of sidewalk being replaced, the condition of the base underneath, and whether tree-root removal is part of the job. The city covers a significant portion for qualifying homeowners — your out-of-pocket is a fraction of a private-pay sidewalk replacement. We give you a fixed-price quote with the city's contribution itemized so there are no surprises.",
+    "Safe Sidewalks Program work has two cost components on every job: (1) a $3,500 contractor minimum from us that covers up to roughly 150 square feet of sidewalk replacement, and (2) a separate surveyor fee of $1,000 (or $2,000 if your property's survey monument needs to be reset). The surveyor cost is added to the final bill. Larger sidewalk sections, tree-root removal, and base re-grading add to the contractor portion. We itemize every line on the quote so there are no surprises — and we explain how the city's program contribution applies to your specific notice.",
   typicalCost: {
     heading: "What does Safe Sidewalks Program work cost you?",
     rangeSentence:
-      "Private-pay San Diego sidewalk replacement runs $7–$13 per square foot. Through the Safe Sidewalks Program, the city covers a substantial portion for qualifying homeowners — your out-of-pocket is typically a fraction of full pricing.",
+      "Our contractor minimum on Safe Sidewalks work is $3,500, which covers up to roughly 150 sq ft of sidewalk replacement. A surveyor fee of $1,000–$2,000 is added to the final bill (depending on whether the property monument needs to be reset). Anything beyond ~150 sq ft is priced from $17.22 per square foot for plain flatwork.",
     exampleSentence:
-      "A typical 4×20-foot sidewalk replacement is around $560–$1,040 at full price. Through the program, your share can be significantly less — exact split depends on current city contribution rules, which we itemize on your quote.",
+      "A small Safe Sidewalks repair under 150 sq ft typically runs $3,500 from us plus $1,000–$2,000 for the surveyor — total $4,500–$5,500 before the City of San Diego's program contribution is applied to your notice.",
     factors: [
-      "Linear feet of sidewalk being replaced",
+      "Linear feet of sidewalk being replaced (under ~150 sq ft hits the $3,500 minimum)",
+      "Surveyor fee — $1,000 standard, $2,000 if the property monument needs to be reset",
       "Number of full-panel replacements vs spot repairs",
       "Tree-root removal scope (often what triggered the citation)",
       "Base condition under the cracked panels",
-      "Permit fees (program may cover; we itemize either way)",
+      "Permit fees (we itemize)",
       "Inspection scheduling",
-      "City contribution percentage at the time of repair",
+      "City of San Diego program contribution at the time of repair",
     ],
   },
   callout: {
@@ -310,9 +312,9 @@ const sidewalkRepair: LandingPage = {
   typicalCost: {
     heading: "What does sidewalk repair cost?",
     rangeSentence:
-      "Private-pay San Diego sidewalk repair runs $7–$13 per square foot. Tree-root removal adds $200–$600 per affected panel.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Tree-root removal, multiple-panel work, ADA regrading, and HOA off-hours scheduling each add to that baseline.",
     exampleSentence:
-      "A typical 4×20-ft single-panel replacement runs $560–$1,040. A 60-linear-foot front-of-house sidewalk replacement runs $1,680–$3,120.",
+      "If your sidewalk is in the City of San Diego and you have a Safe Sidewalks Program notice, see our Safe Sidewalks page — that program has its own pricing structure ($3,500 minimum + surveyor fee, with a city contribution applied). Otherwise, this is straight private-pay sidewalk work.",
     factors: [
       "Linear feet of sidewalk replaced",
       "Number of panels (more panels = better per-sqft pricing)",
@@ -388,14 +390,13 @@ const driverepl: LandingPage = {
   heroSub:
     "Cracked, sunken, or stained driveway making your house look 20 years older? We demo the old slab, prep the base properly, pour a new one to last decades. Park on it inside a week.",
   intro:
-    "Most driveways in San Diego fail at the same time the rest of the house starts feeling its age — 20–30 years in. Hairline cracks turn into chunks. Oil spots become permanent. Settling near the garage means the door scrapes the slab. At a certain point, patching is throwing money at a slab that's done.\n\nReplacement is straightforward when you do it right. Demo the old, prep the base, set forms with the right slope, lay rebar, pour, finish, cure, seal. We handle it end-to-end: in two-to-three days of work spread across about a week, you have a brand-new driveway that'll outlast the next mortgage.",
+    "Most driveways in San Diego fail at the same time the rest of the house starts feeling its age — 20–30 years in. Hairline cracks turn into chunks. Oil spots become permanent. Settling near the garage means the door scrapes the slab. At a certain point, patching is throwing money at a slab that's done.\n\nReplacement is straightforward when you do it right. Demo the old, prep the base, set forms with the right slope, lay rebar, pour, finish, cure. We handle it end-to-end: in two-to-three days of work spread across about a week, you have a brand-new driveway that'll outlast the next mortgage.",
   whatYouGet: [
     "Demo and haul-off of the existing driveway",
     "Compacted base prep with proper drainage slope",
     "#3 rebar grid (or fiber-mesh on smaller pours)",
     "Choice of finish: broom, smooth-trowel, swirled, or stamped",
     "Saw-cut control joints to prevent random cracking",
-    "Sealer coat to protect against oil and UV",
     "Coordination with your landscaping or fence work",
     "Workmanship warranty in writing",
   ],
@@ -403,7 +404,7 @@ const driverepl: LandingPage = {
     { title: "On-site quote", body: "Ronnie measures, checks the existing slab and base, writes a fixed-price quote — usually same week." },
     { title: "Demo day", body: "Saw-cut the perimeter, break out the old slab, haul it off. Re-grade and compact the base." },
     { title: "Forms + rebar", body: "Set forms to the right slope so water flows away from the garage. Lay rebar in a tied grid." },
-    { title: "Pour + finish", body: "Pour 3500-psi mix in a single day. Finish to your chosen texture, saw-cut control joints, seal." },
+    { title: "Pour + finish", body: "Pour 3500-psi mix in a single day. Finish to your chosen texture, saw-cut control joints." },
   ],
   timeline: [
     { phase: "Quote", duration: "Same week", note: "Free, on-site, fixed-price." },
@@ -418,9 +419,9 @@ const driverepl: LandingPage = {
   typicalCost: {
     heading: "What does driveway replacement cost?",
     rangeSentence:
-      "Most San Diego driveway replacements run $8–$14 per square foot for broom finish. Stamped or decorative finishes add $4–$8/sqft on top.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Stamped, stained, or exposed-aggregate finishes add to that — pattern complexity, color, and material spec all factor in.",
     exampleSentence:
-      "A typical 400-sqft driveway lands between $3,200 and $5,600 broomed. The same driveway with a stamped slate finish runs $4,800–$8,800.",
+      "Demo and haul-off, base re-grade, rebar spec, finish choice, and apron tie-in (which needs its own city encroachment permit) each shape the final number. We give you a fixed-price written quote at the on-site walk so you see the math before you commit.",
     factors: [
       "Total square footage",
       "Demo and haul-off",
@@ -492,9 +493,9 @@ const driveExt: LandingPage = {
   typicalCost: {
     heading: "What does a driveway extension cost?",
     rangeSentence:
-      "Driveway extensions run $9–$15 per square foot — slightly higher than full driveways because tie-in work + smaller pour volume.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Extensions can run a touch higher per-sqft than full driveways because the tie-in work + smaller pour volume are less labor-efficient.",
     exampleSentence:
-      "A typical 4-ft-wide × 25-ft-long extension (100 sqft) runs $900–$1,500. A 200-sqft second-car lane runs $1,800–$3,000.",
+      "What's being torn out (grass is fastest, pavers cost more in labor), how much base import is needed, and finish-match complexity each shape the final number. We give you a fixed-price written quote at the on-site walk.",
     factors: [
       "Square footage added",
       "What's being torn out (grass, pavers, gravel)",
@@ -560,9 +561,9 @@ const driveApron: LandingPage = {
   typicalCost: {
     heading: "What does a driveway apron cost?",
     rangeSentence:
-      "Driveway apron replacement runs $11–$17 per square foot. The premium over a regular driveway covers permit fees, thicker city-spec slab, and inspection coordination.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Apron work runs a bit above the floor because of the city encroachment permit, the thicker city-spec slab, and inspection coordination.",
     exampleSentence:
-      "A typical residential apron (about 80 sqft) runs $880–$1,360 including the city encroachment permit.",
+      "Apron square footage, slab thickness (city spec varies by traffic load), permit fees, and any curb modification each shape the final number. We itemize everything on the written quote so you see what the city's portion is and what ours is.",
     factors: [
       "Apron square footage",
       "Slab thickness (city spec varies)",
@@ -615,7 +616,7 @@ const rvPads: LandingPage = {
     { title: "Measure your rig", body: "Tell us the rig dimensions and tire layout. Ronnie sizes the pad with extra room for setup gear." },
     { title: "Site prep", body: "Remove existing surface (grass, pavers, gravel). Compact and import base material as needed." },
     { title: "Forms + double rebar", body: "Set forms to spec, lay doubled rebar grid (heavier than a standard driveway)." },
-    { title: "Pour + finish", body: "Pour 6-inch 3500-psi mix, broom finish, saw-cut control joints, optional sealer." },
+    { title: "Pour + finish", body: "Pour 6-inch 3500-psi mix, broom finish, saw-cut control joints." },
   ],
   timeline: [
     { phase: "Quote", duration: "Same week", note: "Free, on-site." },
@@ -628,9 +629,9 @@ const rvPads: LandingPage = {
   typicalCost: {
     heading: "What does an RV pad cost?",
     rangeSentence:
-      "RV pads run $11–$16 per square foot — the premium over a 4-inch driveway covers the 6-inch slab, doubled rebar grid, and drainage.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. RV pads run a bit higher per-sqft than a standard driveway because the 6-inch slab uses 50% more concrete than the 4-inch standard, plus doubled rebar and drainage spec for the sustained weight.",
     exampleSentence:
-      "A typical 12×40-ft Class A pad (480 sqft) runs $5,280–$7,680. A 10×30-ft trailer pad runs $3,300–$4,800.",
+      "Pad dimensions (sized to your rig), base import (if your soil needs it), and any tie-in to the existing driveway each shape the final number. We give you a fixed-price written quote at the on-site walk.",
     factors: [
       "Pad dimensions (sized to your rig)",
       "Slab thickness (6-inch is standard for RV)",
@@ -668,7 +669,7 @@ const poolDecks: LandingPage = {
   heroSub:
     "Slip-resistant finishes that stay cool under bare feet, drain water away from the pool, and hold up to chlorine, sunscreen, and 20 summers of cannonballs.",
   intro:
-    "Pool decks are the highest-stakes flatwork on a residential property. Slip-and-fall risk is real. Heat under bare feet matters when your kids are running circles around the pool in July. Drainage has to work — water needs to flow away from the pool, not into the coping.\n\nWe pour pool decks with finish, color, and slope chosen specifically for the pool environment: slip-resistant texture (exposed aggregate, broomed, or textured stamped), light color to stay cool, drainage slope tied into the deck drains, and a sealer rated for pool-chemistry exposure.",
+    "Pool decks are the highest-stakes flatwork on a residential property. Slip-and-fall risk is real. Heat under bare feet matters when your kids are running circles around the pool in July. Drainage has to work — water needs to flow away from the pool, not into the coping.\n\nWe pour pool decks with finish, color, and slope chosen specifically for the pool environment: slip-resistant texture (exposed aggregate, broomed, or textured stamped), light color to stay cool, and drainage slope tied into the deck drains.",
   whatYouGet: [
     "Site survey of pool perimeter and existing drainage",
     "Removal of existing deck surface (or pour-over assessment if salvageable)",
@@ -677,13 +678,12 @@ const poolDecks: LandingPage = {
     "Choice of slip-resistant finish: exposed aggregate, broom, textured stamp",
     "Light color options to stay cool under bare feet",
     "Coordination with pool coping and deck drains",
-    "Pool-chemistry-rated sealer",
   ],
   process: [
     { title: "Walk and plan", body: "Ronnie walks the pool perimeter, talks finish + color + drainage, writes a fixed-price quote." },
     { title: "Demo", body: "Remove existing deck surface (often pavers, dated stamped concrete, or worn slab)." },
     { title: "Forms + drainage", body: "Set forms to slope away from pool, integrate with existing deck drains, lay rebar." },
-    { title: "Pour, finish, seal", body: "Pour, apply chosen slip-resistant finish, cure, seal with pool-rated sealer." },
+    { title: "Pour and finish", body: "Pour, apply chosen slip-resistant finish, cure." },
   ],
   timeline: [
     { phase: "Quote", duration: "Same week", note: "Free, on-site." },
@@ -696,16 +696,15 @@ const poolDecks: LandingPage = {
   typicalCost: {
     heading: "What does a pool deck cost?",
     rangeSentence:
-      "Pool decks run $11–$18 per square foot for exposed aggregate, $14–$22/sqft for stamped, $9–$13/sqft for broomed.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Pool decks usually use one of the slip-resistant decorative finishes (exposed aggregate or textured stamp), which add to that baseline.",
     exampleSentence:
-      "A typical 400-sqft pool deck (4-ft-wide perimeter on a 16×32 pool) lands between $4,400 and $7,200 with exposed aggregate.",
+      "Linear feet around the pool, deck width, finish choice, color, drainage scope, and whether the existing coping needs to be reset all shape the final number. We give you a fixed-price written quote at the on-site walk.",
     factors: [
       "Linear feet around the pool + deck width",
       "Finish (broom · exposed aggregate · stamped)",
       "Color choice (light colors stay cooler)",
       "Coping reset (if old coping is failing)",
       "Drainage system (deck drains, channel drains)",
-      "Pool-rated sealer",
       "Whether pool needs partial drain for work",
     ],
   },
@@ -714,7 +713,6 @@ const poolDecks: LandingPage = {
     { q: "Will the deck be hot under bare feet?", a: "Concrete absorbs heat, period. Lighter colors absorb less. We use light gray, tan, or color-stained finishes to keep deck temperature manageable. Dark stamped concrete around a pool gets uncomfortably hot in afternoon sun." },
     { q: "Do I need to drain the pool?", a: "Sometimes — if we're replacing coping or the deck is poured right against the pool edge, we may need a partial drain. We'll tell you during the quote so you can coordinate with your pool service." },
     { q: "Can you pour over my existing pool deck?", a: "If the existing deck is structurally sound (no major cracks, no settling, no failed coping), yes — a 2-inch overlay is an option. If the deck has structural issues, we tear out and start over." },
-    { q: "What about pool chemicals on the new concrete?", a: "We use a sealer rated for pool-chemistry exposure (chlorine, salt, sunscreen). Re-sealing every 3 years keeps the surface protected." },
     { q: "How long until the kids can swim again?", a: "Pool itself is unaffected if we don't have to drain it. The deck is foot-walkable in 48 hours. Furniture, umbrellas, and dragging chairs — wait 14 days." },
     { q: "Will the deck slope correctly so water flows away from the pool?", a: "Yes — we grade every pool deck with positive slope away from the coping (typically 1/4 inch per foot). Water never flows back into the pool, which is what damages tile and coping over time." },
     { q: "Can I add a pergola or fire pit later?", a: "Yes, but tell us up front — we'll thicken the slab and add extra rebar where the post bases or pad will sit. Adding heavy structural loads to standard 4-inch deck concrete causes cracking." },
@@ -735,11 +733,11 @@ const stampedPatio: LandingPage = {
   category: "Patios",
   metaTitle: "Stamped Concrete Patios San Diego — Tile, Slate, Wood Looks | Rose Concrete",
   metaDescription:
-    "Stamped concrete patio contractor in San Diego. Tile, slate, and wood-grain looks at concrete prices. Sealed for SoCal sun. CA License #1130763. (619) 537-9408.",
+    "Stamped concrete patio contractor in San Diego. Tile, slate, and wood-grain looks at concrete prices. CA License #1130763. (619) 537-9408.",
   heroEyebrow: "Stamped patios · San Diego",
   h1: "A high-end patio look without the high-end price.",
   heroSub:
-    "Stamped concrete that reads like slate, tile, or wood plank from across the yard — at a fraction of the price of the real thing. Sealed and cured to handle SoCal sun for years.",
+    "Stamped concrete that reads like slate, tile, or wood plank from across the yard — at a fraction of the price of the real thing. Built to handle SoCal sun for years.",
   intro:
     "Stamped concrete is the cheat code for a custom-look backyard. The pattern is pressed into wet concrete using textured mats, then colored with integral pigment or surface stain. Done well, it reads as slate, tile, brick, or wood plank from any normal viewing distance — and it costs a fraction of what the real material installed would.\n\nDone poorly, stamped concrete looks fake from across the yard, with bleeding pattern lines and washed-out color. We do all the stamping in-house, so the same hands that pour also stamp. That's the difference.",
   whatYouGet: [
@@ -749,47 +747,46 @@ const stampedPatio: LandingPage = {
     "Compacted base prep and proper drainage slope",
     "Rebar or fiber-mesh reinforcement",
     "Stamp work while concrete is still workable",
-    "Sealer matched to the finish (matte, satin, gloss)",
     "Maintenance instructions",
   ],
   process: [
     { title: "Pick the look", body: "Ronnie brings sample boards. You pick stamp pattern, base color, and accent color from real samples." },
     { title: "Prep + pour", body: "Standard base prep, forms, rebar. Pour 3500-psi with integral color if chosen." },
     { title: "Stamp", body: "While the slab is still workable, mats are pressed into the concrete in the chosen pattern." },
-    { title: "Stain + seal", body: "Surface stain applied after cure (if chosen). Final sealer protects the finish for years." },
+    { title: "Stain (optional)", body: "If you chose surface stain, we apply it after the slab cures." },
   ],
   timeline: [
     { phase: "Quote + sample review", duration: "Same week", note: "Free, on-site, with sample boards." },
     { phase: "Schedule", duration: "1–3 weeks", note: "Stamped jobs need a longer prep window for color/pattern coordination." },
     { phase: "Prep + pour + stamp", duration: "1–2 days", note: "Pour and stamp same day; finish work into day 2." },
-    { phase: "Stain + seal", duration: "5–10 days after pour", note: "Cure first, then stain (if chosen) and seal." },
+    { phase: "Stain (if chosen)", duration: "5–10 days after pour", note: "Cure first, then stain." },
   ],
   costContext:
-    "Stamped patio cost depends on square footage, pattern complexity (single-stamp is base; multi-stamp ashlar with accent borders adds), color depth (integral pigment vs added surface stain), border or score-line accents, and sealer choice (matte vs gloss vs anti-slip).",
+    "Stamped patio cost depends on square footage, pattern complexity (single-stamp is base; multi-stamp ashlar with accent borders adds), color depth (integral pigment vs added surface stain), and border or score-line accents.",
   typicalCost: {
     heading: "What does a stamped patio cost?",
     rangeSentence:
-      "Stamped concrete patios run $14–$22 per square foot — about 50–80% more than a broom-finish patio. Patterns like single-stamp slate are at the lower end; multi-stamp ashlar with accent borders and integral + surface color is at the top.",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Stamped concrete adds to that — pattern complexity, color depth, and accent borders all factor in. We give you a fixed-price quote at the on-site walk so you see the math before you commit.",
     exampleSentence:
-      "A typical 300-sqft stamped patio with integral color and a sealer lands between $4,200 and $6,600.",
+      "Single-stamp slate or wood plank in a single integral color is at the lower end of the stamped range. Multi-stamp ashlar with accent borders and surface stain on top of integral color is at the top.",
     factors: [
+      "Square footage",
       "Pattern complexity (single vs multi-stamp)",
       "Color depth (integral pigment + surface stain)",
       "Border or accent score lines",
-      "Sealer choice (matte, gloss, anti-slip)",
       "Site prep + drainage",
       "Whether overlay on existing slab is possible",
     ],
   },
   faqs: [
     { q: "Will it actually look like slate / tile / wood?", a: "From any normal viewing distance — yes. Up close on hands and knees, it reads as concrete. Most folks who walk past at standing height never realize it's concrete." },
-    { q: "How long does stamped color last?", a: "Integral color (mixed into the concrete) lasts the lifetime of the slab. Surface stains fade over time and need refresh — figure 5–7 years on a high-sun patio. Sealer does most of the protecting; reapply every 3–5 years." },
-    { q: "Is stamped concrete slippery?", a: "Stamping creates real surface texture, so it's grippier than smooth concrete even when wet. For pool decks we pick a stamp pattern with deeper texture and use anti-slip sealer additives." },
+    { q: "How long does stamped color last?", a: "Integral color (mixed into the concrete) lasts the lifetime of the slab. Surface stains fade over time and need refresh — figure 5–7 years on a high-sun patio." },
+    { q: "Is stamped concrete slippery?", a: "Stamping creates real surface texture, so it's grippier than smooth concrete even when wet. For pool decks we pick a stamp pattern with deeper texture for extra grip." },
     { q: "Can stamping go on top of my existing patio?", a: "Sometimes — with a 1–2 inch overlay, if the existing slab is structurally sound. We'll evaluate during the quote." },
-    { q: "What's the maintenance?", a: "Light pressure-wash once a year. Re-seal every 3–5 years. That's it." },
+    { q: "What's the maintenance?", a: "Light pressure-wash once a year. That's it for normal use." },
     { q: "How do I pick a pattern?", a: "Ronnie brings sample boards to the quote with the actual stamps and colors so you see and feel the finish on real concrete — not a Pinterest screenshot. Most folks pick within 15 minutes once they have the boards in hand." },
     { q: "Can I do multiple patterns or borders?", a: "Yes — a common move is a slate pattern in the field with a brick border at the perimeter. Or scoring lines around the BBQ pad to define zones. Adds modest cost and a lot of visual interest." },
-    { q: "How long does the work take?", a: "Pour and stamp happen on day one. Stain (if chosen) goes on after a 5–10 day cure. Final sealer goes on after the stain dries. Total project window: about two weeks from pour day to ready-to-use." },
+    { q: "How long does the work take?", a: "Pour and stamp happen on day one. Stain (if chosen) goes on after a 5–10 day cure. Total project window: about a week to two weeks from pour day to ready-to-use, depending on whether you chose surface stain." },
     { q: "Can I get color samples to take home?", a: "Yes — Ronnie leaves you with cured 4×4 sample tiles in your chosen color so you can see how it looks under your actual yard light, morning vs evening, dry vs wet. No pressure to commit at the quote." },
   ],
   serviceTypeForForm: "patio",
@@ -822,7 +819,6 @@ const commercial: LandingPage = {
     "ADA-compliant slope and joint placement on customer-facing surfaces",
     "Coordination with electrical, plumbing, and other trades on TI projects",
     "Saw-cut control joints, broom or stamped finish",
-    "Sealer rated for commercial foot traffic",
   ],
   process: [
     { title: "Site walk + scope", body: "Walk the project with the GC, owner, or property manager. Identify scope, schedule constraints, and trade coordination." },
@@ -841,9 +837,9 @@ const commercial: LandingPage = {
   typicalCost: {
     heading: "What does small commercial concrete cost?",
     rangeSentence:
-      "Small commercial flatwork runs $10–$16 per square foot for broom finish, $14–$22/sqft for decorative. Off-hours scheduling adds a small premium for one-off jobs (no premium for established clients).",
+      "Concrete flatwork from Rose Concrete starts at $17.22 per square foot for plain broom finish. Commercial-spec rebar (heavier than residential), ADA cross-slope work, off-hours scheduling, and decorative finishes each add to that baseline.",
     exampleSentence:
-      "A typical 600-sqft retail patio addition lands between $6,000 and $9,600 broomed. A 1,500-sqft TI walkway runs $15,000–$24,000.",
+      "Off-hours scheduling is no-premium for established clients; for one-off projects there's a small bump for nights/weekends, quoted up front. We give you a fixed-price written quote with schedule milestones at the on-site walk.",
     factors: [
       "Square footage",
       "Finish (broom · decorative · stamped)",

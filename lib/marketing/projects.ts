@@ -45,7 +45,7 @@ export const PROJECTS: readonly Project[] = [
     serviceLabel: "Stamped Concrete Patio",
     neighborhood: "La Mesa",
     description:
-      "650 sq ft of slate-pattern stamped patio with integral charcoal color and gloss seal.",
+      "650 sq ft of slate-pattern stamped patio with integral charcoal color.",
     placeholder: true,
   },
   // PLACEHOLDER — REPLACE WITH REAL JOB
