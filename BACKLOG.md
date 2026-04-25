@@ -2,6 +2,74 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 22 (2026-04-25, kill the service worker)
+
+### Why
+
+Users on installed PWAs were stuck on stale builds even after the
+round-20 + round-21 fixes. The cache-version bump + network-first +
+controllerchange auto-reload helped, but a chunk of devices still
+served outdated HTML — the browsers themselves were holding onto the
+old SW registration in ways that didn't pick up updates. Reinstalling
+the app didn't always help.
+
+Decision: **rip the service worker out of the app entirely**. A
+vanilla web app that always hits the network is a much better
+experience than a PWA with a flaky cache. Lose offline, gain
+correctness. We can revisit a more conservative SW (or pivot to
+native push) later.
+
+### What changed
+
+- **Deleted `public/sw.js`** — no service worker is served anymore.
+- **Deleted `app/crew/sw-register.tsx`** — no registration code in
+  the bundle.
+- **New `app/crew/sw-unregister.tsx`** — one-shot **cleanup** shim
+  (NOT registration). On first visit per device after this lands:
+    1. Calls `navigator.serviceWorker.getRegistrations()` and
+       `unregister()`'s every match.
+    2. Wipes every Cache Storage cache (anything the old SW put
+       there).
+    3. Sets `localStorage["rc:sw-cleanup-ran-v1"] = "1"` so the
+       cleanup runs exactly once per device.
+    4. Reloads if it actually unregistered something, so the now-
+       fresh page replaces whatever stale HTML the SW was still
+       controlling.
+  Safe to delete the whole shim file once we're confident every
+  device has run the cleanup at least once (~2-3 weeks).
+- **`app/crew/layout.tsx`** — swapped `<ServiceWorkerRegister />`
+  for `<ServiceWorkerUnregister />`. Header doc-comment updated to
+  explain why no SW exists anymore.
+- **`components/push-enroll.tsx`** — push notifications relied on
+  the SW. Replaced the enroll widget with a "temporarily
+  unavailable, we'll send the same alerts via email/SMS" notice.
+  The component still mounts and best-effort unsubscribes any
+  stale push subscription left behind on the device. To re-enable
+  later: revert this commit's edit to push-enroll + restore
+  `public/sw.js`.
+
+### What this means for users
+
+- **First open after deploy**: existing devices run the cleanup
+  shim, unregister the old SW, clear caches, and refresh once.
+  After that they're on the fresh build.
+- **All future deploys**: land on the next page load, no caching
+  in the way.
+- **Trade-off**: no offline support and no push notifications. Both
+  were aspirational anyway — push wasn't fully wired (no VAPID key
+  in production), and offline only worked for a small set of
+  precached pages.
+
+### Files changed this round
+
+- **Deleted:** `public/sw.js`, `app/crew/sw-register.tsx`
+- **New:** `app/crew/sw-unregister.tsx`
+- **Modified:** `app/crew/layout.tsx`, `components/push-enroll.tsx`
+
+`tsc --noEmit` passes clean.
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 21 (2026-04-24, FAB create flows)
 
 `npx tsc --noEmit` passes clean. **No new SQL migrations** —

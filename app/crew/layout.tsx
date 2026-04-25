@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ServiceWorkerRegister } from "./sw-register";
+import { ServiceWorkerUnregister } from "./sw-unregister";
 import { BottomNav } from "./bottom-nav";
 import { CrewTopBar } from "./top-bar";
 
@@ -17,6 +17,14 @@ import { CrewTopBar } from "./top-bar";
  *   Primary green: #1A7B40
  *   Dark text:     #1a2332
  *   Background:    #f5f5f5
+ *
+ * No service worker. We used to ship one (`public/sw.js`) but
+ * aggressive caching meant users on installed PWAs got stuck on
+ * stale HTML. The `<ServiceWorkerUnregister />` component below is
+ * a one-shot cleanup that unregisters any old SW that's still
+ * sticking around on existing devices, then reloads to a fresh
+ * page. Safe to delete this component once every device has run
+ * the cleanup at least once (~2-3 weeks of usage).
  */
 export default async function CrewLayout({
   children,
@@ -42,7 +50,7 @@ export default async function CrewLayout({
         paddingBottom: "calc(env(safe-area-inset-bottom, 0) + 72px)",
       }}
     >
-      <ServiceWorkerRegister />
+      <ServiceWorkerUnregister />
       <CrewTopBar today={new Date()} unreadCount={unreadCount ?? 0} />
       <main className="mx-auto max-w-lg px-4 py-4">{children}</main>
       <BottomNav />
