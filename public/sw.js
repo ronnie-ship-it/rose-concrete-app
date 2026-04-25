@@ -15,7 +15,10 @@
 //   - Everything else falls through to the network (dashboard pages,
 //     server actions, API routes all require fresh data).
 
-const CACHE_VERSION = "v3";
+// Bump this whenever crew UI ships a structural change you want to land
+// immediately. The activate handler nukes any cache whose key doesn't end
+// in the current version, forcing fresh fetches on the next navigation.
+const CACHE_VERSION = "v4-2026-04-24-jobber-rebuild";
 const SHELL_CACHE = `rose-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rose-runtime-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rose-images-${CACHE_VERSION}`;
@@ -80,9 +83,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Stale-while-revalidate for /crew navigations.
+  // Crew navigations — NETWORK-FIRST so deploys show up immediately.
+  // Falls back to cache only when offline. (Was stale-while-revalidate,
+  // which made every deploy take two reloads to land.)
   if (url.pathname === "/crew" || url.pathname.startsWith("/crew/")) {
-    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
     return;
   }
 
@@ -101,6 +106,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
+
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.type === "basic") {
+      cache.put(request, response.clone()).catch(() => undefined);
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw new Error("offline");
+  }
+}
 
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
