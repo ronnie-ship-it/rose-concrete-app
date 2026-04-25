@@ -65,7 +65,7 @@ function TabButton({
     >
       {children}
       {active && (
-        <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-[#4A7C59]" />
+        <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-[#1A7B40]" />
       )}
     </button>
   );
@@ -89,7 +89,7 @@ function NotesForm({
         defaultValue={initialNotes ?? ""}
         placeholder="Add private notes about this visit — pour volume, site issues, follow-ups…"
         rows={8}
-        className="w-full resize-y rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-sm focus:border-[#4A7C59] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+        className="w-full resize-y rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-sm focus:border-[#1A7B40] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
       />
       <div className="flex items-center justify-between">
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
@@ -102,7 +102,7 @@ function NotesForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-[#4A7C59] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+          className="rounded-lg bg-[#1A7B40] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save notes"}
         </button>

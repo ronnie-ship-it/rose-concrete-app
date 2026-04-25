@@ -2,6 +2,174 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — overnight round 20 (2026-04-24, screenshot rebuild)
+
+`npx tsc --noEmit` passes clean. **No new SQL migrations this round** —
+UI-only changes against existing tables.
+
+### The theme: crew app rebuilt screen-by-screen from real Jobber screenshots
+
+Thomas uploaded 10 screenshots of the actual Jobber iOS app and asked
+for a 1:1 rebuild. The previous crew rebuild (round 18) was a guess
+based on description alone — turns out the real Jobber UI is quite
+different. Every crew screen is now restructured to match the
+screenshots.
+
+### Color recalibration
+
+The primary crew green was wrong. Old: `#4A7C59` (too sage / muted).
+New: **`#1A7B40`** (deeper, more saturated forest green — matches the
+"Clock In" button + week-strip selected day in the screenshots). One
+sed sweep across `app/crew/**/*.{ts,tsx}` swapped all 14 files.
+
+### What shipped this round
+
+- **`app/crew/bottom-nav.tsx`** — full rewrite. The active-tab marker
+  is no longer a green top-bar; Jobber uses a short thin **black**
+  line (~28 px wide, centered above the icon) and bolder text/icon
+  in dark `#1a2332`. Inactive tabs are gray. Tap targets stay 56 px.
+
+- **`app/crew/top-bar.tsx`** — now PAGE-AWARE. Detects pathname and
+  renders four variants:
+    • `/crew` → small gray date label "Friday, April 24" on the left
+    • `/crew/schedule` → "April ▼" dropdown on the left + 3 right-side
+      icon buttons (jump-to-today, filters, sparkle)
+    • `/crew/search` and `/crew/more` → centered title + sparkle
+    • `/crew/timesheet` → small "Timesheet" title left
+    • `/crew/visits/...` → header hidden (visit page renders own back btn)
+  Right side always has bell + sparkle. Bell now shows a real **red
+  notification badge** with the live unread-count from
+  `notifications.read_at IS NULL`. Layout queries the count and passes
+  it down via the new `unreadCount` prop.
+
+- **`app/crew/page.tsx`** (Home) — full rewrite from screenshots:
+    • "Good evening, Thomas" 3xl bold greeting
+    • **Let's get started** card — single row, label + green Clock In
+      pill with play icon (clocks into first visit of the day; if no
+      visits, links to /crew/schedule)
+    • Map (revamped — see CrewHomeMap below)
+    • Empty visit card "No visits scheduled today" (light gray)
+    • **This week** + Apr 19 - 25 sub-label + green "View timesheet"
+      link, with "Total completed time `00:00`" row (aggregates closed
+      visit_time_entries this week)
+    • **To do** list — 5 plain rows (no card grouping) with leading
+      colored icons + bold count + optional `Worth $Xk` sub + green
+      arrow on the right. Live data: requests new / requests qualified
+      / quotes accepted / projects scheduled-but-late / projects done-
+      not-yet-invoiced.
+    • **Business health** with "View all" link + 2 metric rows
+      (Job value, Visits scheduled) showing $/count + ↑% green or ↓%
+      red delta pill vs prior week
+    • CreateFab embedded
+  Saturday-anchored week math throughout (matches the Apr 19 = Sat
+  screenshot).
+
+- **`app/crew/create-fab.tsx`** — full rewrite. The FAB now opens to
+  a **vertical column** of `[Label]  ○-icon` rows that float above
+  the FAB itself: Request / Task / Expense / Invoice / Quote / Job /
+  Client (top → bottom). Backdrop is a semi-transparent white wash
+  (Jobber's exact style). FAB icon swaps from `+` to a person
+  silhouette when open, mirroring the iOS screenshot. Esc closes,
+  body scroll locks.
+
+- **`app/crew/schedule/page.tsx`** — full rewrite. The biggest change:
+  schedule is now **multi-employee columns** instead of a single-user
+  list.
+    • Pulls every visit in the week with `visit_assignments` join
+    • Groups visits by assignee — each column has a header `Name 0/N`
+      where N = total assigned and the front number is completed count
+    • Visit cards inside the column are rendered in **dark navy**
+      (`#1a2332`) with white text — matches the screenshot exactly
+    • Title / Client / Time range / Address all in the card
+    • Cards link to `/crew/visits/{id}`
+    • Horizontal-scroll snap container so multiple employees fit on
+      a phone (each column is 260 px wide)
+    • Day grid + Map views still render the flat (un-grouped) visit
+      list across all employees
+
+- **`app/crew/schedule/week-strip.tsx`** — full rewrite. Removed the
+  white card background — now plain on the page. Selected day shows
+  a solid green circle filled with white text. Today (when not
+  selected) shows green-text-only. Letters above use the actual
+  day-of-week of each date, so the strip works for any week anchor.
+  Day-count badge collapsed to a tiny green dot below the number.
+
+- **`app/crew/schedule/view-toggle.tsx`** — restyled to **3 equal
+  full-width segments** (was a fixed-width pill group). Selected
+  segment is white with shadow. Matches Jobber screenshot.
+
+- **`app/crew/search/search-ui.tsx`** — full rewrite. Removed the
+  `<h1>Search</h1>` (now in top-bar). Search input is now a Jobber-
+  style **rounded gray pill** with magnifier on the left,
+  placeholder just "Search". Filter chips use leading icons (person
+  for Clients, inbox-gold for Requests, magnifier-pink for Quotes,
+  hammer-green for Jobs) and selected state is **dark navy** instead
+  of green. Result rows lose the big avatar circle — just a leading
+  line icon (color matches the kind: person/inbox-gold/magnifier-pink/
+  hammer-green). Subtitle uses Jobber's `Today | 4505 Coronado` /
+  `Apr 23 | $6.5k | Quote #121` format. Status chip on the right is
+  a colored square (Lead = blue, New = yellow, Converted = navy,
+  Upcoming = blue) with bold dark or white text.
+
+- **`app/crew/more/page.tsx`** — full rewrite. Removed all card
+  groupings — Jobber uses plain rows separated by hairline dividers.
+    • Compact header: small green "ROSE" logo tile + "Rose Concrete
+      and Development" gray subtitle
+    • Two big gray tiles: "Apps & integrations" (4-square icon) and
+      "Marketing" (megaphone icon)
+    • Group 1: Support / Subscription (office-only) / Product updates /
+      Refer a friend / About — each with a 24×24 stroke-only icon
+    • Group 2: Profile / Manage team (office-only) / Company details
+      (office-only) / Preferences
+    • **Logout** as a plain row with a red icon and red label
+      (Jobber-parity — was previously a separate red button card)
+
+- **`app/crew/home-map.tsx`** — rebuilt to look like a real Google
+  Maps screenshot. Light-gray bg with curved white "roads", soft
+  street grid, a faint blue water tint on the left edge for SD Bay,
+  6 neighborhood labels in tiny gray uppercase, a blue "you-are-here"
+  pulse dot in the middle, plus numbered green pins for visits. The
+  "View all >" floating pill chip sits in the bottom-right of the
+  map (matches the screenshot 1:1).
+
+### Files added / changed this round (round 20)
+
+- **Rewritten:**
+  `app/crew/bottom-nav.tsx`
+  `app/crew/top-bar.tsx`
+  `app/crew/layout.tsx` (added unreadCount query)
+  `app/crew/page.tsx`
+  `app/crew/create-fab.tsx`
+  `app/crew/schedule/page.tsx`
+  `app/crew/schedule/week-strip.tsx`
+  `app/crew/schedule/view-toggle.tsx`
+  `app/crew/search/search-ui.tsx`
+  `app/crew/more/page.tsx`
+  `app/crew/home-map.tsx`
+- **Color sweep:**
+  Every `#4A7C59` → `#1A7B40` across 14 crew files (bottom-nav,
+  job-card, week-nav, day-grid, schedule pages, visit detail pages,
+  more, search, timesheet).
+
+### Known gaps / tomorrow
+
+- **Real Google Maps tiles.** The map is still SVG faux. Wiring
+  `GOOGLE_MAPS_API_KEY` and swapping in a `<img src="/api/static-map">`
+  proxy is a 30-min job — saved for tomorrow.
+- **Crew FAB destinations.** All 7 actions point at the dashboard
+  (Office) routes for now. Should branch on role: crew-only members
+  shouldn't see Quote/Invoice/Expense in the FAB.
+- **Filter sheet on Schedule.** The "filters" (sliders) icon in the
+  top-bar is wired but doesn't open anything yet. Jobber's filter
+  sheet lets you toggle visible employees, statuses, etc.
+- **Notification badge tap.** Bell currently goes to /crew/more. We
+  should add a real notifications screen.
+- **Status chip mapping in Search** is rough — needs more real-world
+  data to tune (e.g. distinguishing "Quote sent" from "Quote
+  approved" visually).
+
+---
+
 ## ☕ WAKE-UP NOTE — overnight round 19 (2026-04-24, overnight)
 
 `npx tsc --noEmit` passes clean. **No new SQL migrations this round** —

@@ -28,7 +28,7 @@ export function ViewToggle({ value }: { value: ScheduleView }) {
     <div
       role="tablist"
       aria-label="View"
-      className="inline-flex rounded-full bg-neutral-200 p-0.5 text-xs font-bold dark:bg-neutral-800"
+      className="grid grid-cols-3 gap-0 rounded-full bg-neutral-100 p-1 text-sm font-bold dark:bg-neutral-800"
     >
       {options.map((o) => {
         const active = value === o.value;
@@ -39,7 +39,7 @@ export function ViewToggle({ value }: { value: ScheduleView }) {
             role="tab"
             aria-selected={active}
             onClick={() => pick(o.value)}
-            className={`min-w-[64px] rounded-full px-3 py-1.5 transition ${
+            className={`rounded-full px-3 py-2 transition ${
               active
                 ? "bg-white text-[#1a2332] shadow-sm dark:bg-neutral-700 dark:text-white"
                 : "text-neutral-600 dark:text-neutral-400"

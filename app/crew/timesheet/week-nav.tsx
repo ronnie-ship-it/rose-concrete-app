@@ -42,7 +42,7 @@ export function WeekNav({ startIso }: { startIso: string }) {
       <button
         type="button"
         onClick={goThis}
-        className="flex-1 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#4A7C59] shadow-sm active:bg-neutral-50 dark:bg-neutral-800"
+        className="flex-1 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#1A7B40] shadow-sm active:bg-neutral-50 dark:bg-neutral-800"
       >
         This week
       </button>

@@ -1,152 +1,232 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { getLangPref } from "@/lib/preferences";
-import { t } from "@/lib/i18n";
-import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "More — Rose Concrete" };
 
 /**
- * Crew "More" screen — Jobber mobile parity.
+ * Crew "More" — Jobber mobile parity (Apr 2026 screenshots).
  *
- *   ┌───────────────────────────────────┐
- *   │  🌹 Rose Concrete                 │   company logo + name
- *   │                                   │
- *   │  ┌───────────┐ ┌───────────┐     │   big tiles
- *   │  │   Apps    │ │ Marketing │     │
- *   │  └───────────┘ └───────────┘     │
- *   │                                   │
- *   │  Support                          │   list
- *   │  Subscription                     │
- *   │  Product updates                  │
- *   │  Refer a concrete pro             │
- *   │  About                            │
- *   │                                   │
- *   │  Profile                          │
- *   │  Manage team                      │
- *   │  Company details                  │
- *   │  Preferences                      │
- *   │                                   │
- *   │  [🚪 Log out ]                    │   red, full-width
- *   └───────────────────────────────────┘
+ *   ┌──────────────────────────────────┐
+ *   │  More                          ✦ │   (top-bar)
+ *   │                                  │
+ *   │  [logo]  Rose Concrete           │   small company logo + name
+ *   │            and Development       │
+ *   │                                  │
+ *   │  ┌──────────┐  ┌──────────┐     │   2 big gray tiles
+ *   │  │ ⊞⊕  Apps │  │ 📣 Mark- │     │
+ *   │  │ &integr. │  │ eting    │     │
+ *   │  └──────────┘  └──────────┘     │
+ *   │                                  │
+ *   │  💬  Support                     │
+ *   │  📋  Subscription                │
+ *   │  ✦   Product updates             │
+ *   │  🎁  Refer a friend              │
+ *   │  ❓  About                        │
+ *   │  ─────────                       │
+ *   │  👤  Profile                     │
+ *   │  👥  Manage team                 │
+ *   │  🏢  Company details             │
+ *   │  ⚙   Preferences                  │
+ *   │  ─────────                       │
+ *   │  🚪  Logout                  ›   │   red text + red icon
+ *   └──────────────────────────────────┘
+ *
+ * Rows are plain (no card grouping), separated by thin dividers.
+ * Logout is the same row style but red.
  */
 export default async function CrewMore() {
   const user = await requireRole(["crew", "admin", "office"]);
-  const lang = await getLangPref();
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const displayName = profile?.full_name ?? user.full_name ?? user.email;
-  const role = profile?.role ?? user.role ?? "crew";
-
+  const role = user.role ?? "crew";
   const isOfficeish = role === "admin" || role === "office";
 
   return (
     <div className="space-y-5">
-      {/* Company identity */}
-      <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-800">
+      {/* Company identity — small logo + name, no shadow card */}
+      <div className="flex items-center gap-3 pt-1">
         <span
-          className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl font-extrabold text-white"
-          style={{ background: "#4A7C59" }}
+          className="flex h-12 w-12 items-center justify-center rounded-md bg-neutral-100 text-base font-extrabold text-[#1a2332] dark:bg-neutral-800 dark:text-white"
           aria-hidden="true"
         >
-          🌹
+          {/* Tiny mock logo — green oval + "ROSE" */}
+          <svg viewBox="0 0 48 48" className="h-9 w-9">
+            <circle cx="24" cy="22" r="14" fill="#1A7B40" />
+            <text
+              x="24"
+              y="26"
+              textAnchor="middle"
+              fontSize="9"
+              fontWeight="800"
+              fill="#FFF"
+              fontFamily="system-ui"
+            >
+              ROSE
+            </text>
+          </svg>
         </span>
-        <div className="min-w-0">
-          <p className="truncate text-base font-extrabold text-[#1a2332] dark:text-white">
-            Rose Concrete
-          </p>
-          <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
-            Signed in as <span className="font-semibold">{displayName}</span>
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+          Rose Concrete and Development
+        </p>
       </div>
 
-      {/* Big tiles — Apps + Marketing (Jobber's "App Marketplace" + "Marketing Suite") */}
+      {/* Two big gray tiles — Apps & integrations / Marketing */}
       <div className="grid grid-cols-2 gap-3">
         <BigTile
           href="/dashboard/settings/integrations"
-          emoji="🧩"
-          title={t(lang, "Apps")}
-          subtitle={t(lang, "Automations & integrations")}
+          title="Apps & integrations"
+          icon={
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <path d="M17 14v3M17 17h3M17 17h-3M17 17v3" />
+            </svg>
+          }
         />
         <BigTile
           href="/dashboard/settings/reviews"
-          emoji="📣"
-          title={t(lang, "Marketing")}
-          subtitle={t(lang, "Reviews, email, referrals")}
+          title="Marketing"
+          icon={
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 11v2a4 4 0 0 0 4 4l2 4 3-1v-3l9-3V8L9 5H7a4 4 0 0 0-4 4z" />
+            </svg>
+          }
         />
       </div>
 
-      {/* Group 1 — company-wide resources */}
-      <Section label={t(lang, "Support & updates")}>
+      {/* Group 1 — support & info */}
+      <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
         <RowLink
           href="mailto:support@sandiegoconcrete.ai"
-          label={t(lang, "Support")}
-          icon="💬"
+          label="Support"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM12 8v4l3 2" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/settings/workspace"
-          label={t(lang, "Subscription")}
-          icon="💳"
+          label="Subscription"
           hidden={!isOfficeish}
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="6" width="18" height="13" rx="2" />
+              <path d="M3 10h18M7 15h2M13 15h4" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/activity"
-          label={t(lang, "Product updates")}
-          icon="📰"
+          label="Product updates"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" stroke="none">
+              <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z" />
+            </svg>
+          }
         />
         <RowLink
-          href="mailto:refer@sandiegoconcrete.ai?subject=Refer%20a%20concrete%20pro"
-          label={t(lang, "Refer a concrete pro")}
-          icon="🎁"
+          href="mailto:refer@sandiegoconcrete.ai?subject=Refer%20a%20friend"
+          label="Refer a friend"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="8" width="18" height="13" rx="1" />
+              <path d="M3 12h18M12 8v13M8 8a3 3 0 0 1 4-3 3 3 0 0 1 4 3" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/settings"
-          label={t(lang, "About")}
-          icon="ℹ️"
+          label="About"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v.01M11 12h1v4h1" />
+            </svg>
+          }
         />
-      </Section>
+      </ul>
 
-      {/* Group 2 — personal + team + company settings */}
-      <Section label={t(lang, "Account")}>
+      {/* Group 2 — account / company / preferences */}
+      <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
         <RowLink
           href="/dashboard/settings/team"
-          label={t(lang, "Profile")}
-          icon="👤"
+          label="Profile"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/settings/team"
-          label={t(lang, "Manage team")}
-          icon="👥"
+          label="Manage team"
           hidden={!isOfficeish}
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="8" r="3" />
+              <circle cx="17" cy="9" r="2.5" />
+              <path d="M3 21c0-2.5 2.7-4.5 6-4.5s6 2 6 4.5M14 21c0-2 2-3.5 4.5-3.5s4.5 1.5 4.5 3.5" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/settings/business-profile"
-          label={t(lang, "Company details")}
-          icon="🏢"
+          label="Company details"
           hidden={!isOfficeish}
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1" />
+              <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
+            </svg>
+          }
         />
         <RowLink
           href="/dashboard/settings"
-          label={t(lang, "Preferences")}
-          icon="⚙️"
+          label="Preferences"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M3 12h18M3 18h18" />
+              <circle cx="8" cy="6" r="2" fill="currentColor" />
+              <circle cx="16" cy="12" r="2" fill="currentColor" />
+              <circle cx="6" cy="18" r="2" fill="currentColor" />
+            </svg>
+          }
         />
-      </Section>
+      </ul>
 
-      {/* Log out — red, prominent */}
+      {/* Logout — red, plain row style */}
       <form action="/auth/signout" method="post">
         <button
           type="submit"
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-bold text-[#E0443C] shadow-sm active:bg-neutral-50 dark:bg-neutral-800"
+          className="flex w-full items-center gap-3 border-t border-neutral-200 py-3 text-left dark:border-neutral-700"
         >
-          <span>🚪</span>
-          <span>{t(lang, "Log out")}</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#E0443C]">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 17l5-5-5-5M21 12H9M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" />
+            </svg>
+          </span>
+          <span className="flex-1 text-base font-bold text-[#E0443C]">
+            Logout
+          </span>
         </button>
       </form>
 
@@ -157,47 +237,23 @@ export default async function CrewMore() {
   );
 }
 
-function Section({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-        {label}
-      </h2>
-      <ul className="divide-y divide-neutral-100 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-neutral-700 dark:bg-neutral-800">
-        {children}
-      </ul>
-    </section>
-  );
-}
-
 function BigTile({
   href,
-  emoji,
+  icon,
   title,
-  subtitle,
 }: {
   href: string;
-  emoji: string;
+  icon: React.ReactNode;
   title: string;
-  subtitle: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col gap-1 rounded-xl bg-white p-4 shadow-sm active:scale-[0.99] dark:bg-neutral-800"
+      className="flex flex-col gap-2 rounded-xl bg-neutral-100 p-4 active:scale-[0.99] dark:bg-neutral-800"
     >
-      <span className="text-2xl">{emoji}</span>
-      <p className="text-sm font-extrabold text-[#1a2332] dark:text-white">
+      <span className="text-[#1a2332] dark:text-white">{icon}</span>
+      <p className="text-sm font-bold text-[#1a2332] dark:text-white">
         {title}
-      </p>
-      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-        {subtitle}
       </p>
     </Link>
   );
@@ -211,7 +267,7 @@ function RowLink({
 }: {
   href: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   hidden?: boolean;
 }) {
   if (hidden) return null;
@@ -219,13 +275,14 @@ function RowLink({
     <li>
       <Link
         href={href}
-        className="flex min-h-[48px] items-center gap-3 px-4 py-3 active:bg-neutral-50 dark:active:bg-neutral-700"
+        className="flex min-h-[48px] items-center gap-3 py-3 active:bg-neutral-50 dark:active:bg-neutral-800"
       >
-        <span className="w-6 text-center text-base">{icon}</span>
-        <span className="flex-1 text-sm font-semibold text-[#1a2332] dark:text-white">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#1a2332] dark:text-white">
+          {icon}
+        </span>
+        <span className="flex-1 text-base font-medium text-[#1a2332] dark:text-white">
           {label}
         </span>
-        <span className="text-neutral-400">›</span>
       </Link>
     </li>
   );

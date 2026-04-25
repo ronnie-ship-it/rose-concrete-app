@@ -19,7 +19,7 @@ export type CrewJobCardData = {
 };
 
 const STATUS_COLORS = {
-  upcoming: { bar: "#4A7C59", pill: "bg-emerald-100 text-emerald-900" },
+  upcoming: { bar: "#1A7B40", pill: "bg-emerald-100 text-emerald-900" },
   in_progress: { bar: "#E8B74A", pill: "bg-amber-100 text-amber-900" },
   completed: { bar: "#6B7580", pill: "bg-neutral-200 text-neutral-700" },
   late: { bar: "#E0443C", pill: "bg-red-100 text-red-900" },

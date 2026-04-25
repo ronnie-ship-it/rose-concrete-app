@@ -1,22 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { getLangPref } from "@/lib/preferences";
-import { t } from "@/lib/i18n";
-import { CrewJobCard, type CrewJobCardData } from "../job-card";
+import Link from "next/link";
 import { WeekStrip } from "./week-strip";
 import { ViewToggle, type ScheduleView } from "./view-toggle";
 import { DayGrid, type DayGridVisit } from "./day-grid";
 import { CrewHomeMap } from "../home-map";
+import { CreateFab } from "../create-fab";
 
 export const metadata = { title: "Schedule — Rose Concrete" };
 
 type SearchParams = Promise<{ d?: string; view?: string }>;
 
 function weekStartIso(d: Date): string {
-  // Sunday-anchored (matches Jobber mobile's S M T W T F S strip).
-  const day = d.getDay();
+  // Saturday-anchored week (matches the Apr 24 2026 screenshots:
+  // S 19, M 20, T 21, W 22, T 23, F 24, S 25 — so the week starts on
+  // Saturday the 19th).
+  const day = d.getDay(); // 0=Sun..6=Sat
   const start = new Date(d);
-  start.setDate(d.getDate() - day);
+  const offset = day === 6 ? 0 : day + 1;
+  start.setDate(d.getDate() - offset);
   start.setHours(12, 0, 0, 0);
   return start.toISOString().slice(0, 10);
 }
@@ -24,30 +26,51 @@ function normalizeView(raw: string | undefined): ScheduleView {
   if (raw === "day" || raw === "list" || raw === "map") return raw;
   return "list";
 }
-function toCardStatus(s: string): CrewJobCardData["status"] {
-  if (s === "completed" || s === "cancelled") return "completed";
-  if (s === "in_progress") return "in_progress";
-  return "upcoming";
-}
+
+type EmployeeColumn = {
+  userId: string;
+  name: string;
+  initials: string;
+  totalCount: number;
+  completedCount: number;
+  visits: VisitRow[];
+};
+
+type VisitRow = {
+  id: string;
+  raw: string;
+  durationMin: number | null;
+  status: string;
+  title: string;
+  clientName: string | null;
+  address: string | null;
+};
 
 /**
- * Crew schedule — Jobber-mobile parity.
- *   - Month label + dropdown arrow (top left)
- *   - Day / List / Map segmented toggle (top right)
- *   - S M T W T F S week strip (today circled green)
- *   - Body swaps with the view toggle:
- *       Day  — hour-grid with colored blocks
- *       List — stacked visit cards with colored border
- *       Map  — faux map with pins + Route CTA
+ * Crew schedule — Jobber mobile parity (Apr 2026 screenshots).
+ *
+ *   ┌───────────────────────────────────────────┐
+ *   │ April ▼            🗓  ⌘  ✦              │  (top-bar)
+ *   │ ┌────┬────┬────┐                          │
+ *   │ │ Day│List│ Map│                          │  segmented toggle
+ *   │ └────┴────┴────┘                          │
+ *   │  S    M    T   W   T   F (24)  S          │  week strip
+ *   │  19   20   21  22  23  ●24    25         │
+ *   ├──────────────┬───────────────┬────────────┤
+ *   │ Roger 0/4    │ Thomas 0/4    │ ...        │  multi-employee columns
+ *   │ ┌─────────┐  │ ┌─────────┐   │            │
+ *   │ │ Card    │  │ │ Card    │   │            │
+ *   │ │ Card    │  │ │ Card    │   │            │
+ *   │ └─────────┘  │ └─────────┘   │            │
+ *   └──────────────┴───────────────┴────────────┘
  */
 export default async function CrewSchedule({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const user = await requireRole(["crew", "admin", "office"]);
+  await requireRole(["crew", "admin", "office"]);
   const supabase = await createClient();
-  const lang = await getLangPref();
   const sp = await searchParams;
 
   const today = new Date();
@@ -58,28 +81,49 @@ export default async function CrewSchedule({
   const weekEnd = new Date(weekStartDate);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
+  // Pull every visit in the week, joined to project/client AND visit_assignments.
+  // We display ALL employees who have visits this week as columns.
   const { data: weekVisits } = await supabase
     .from("visits")
     .select(
-      "id, scheduled_for, duration_min, status, project:projects(id, name, location, service_address, client:clients(name))",
+      `id, scheduled_for, duration_min, status,
+       project:projects(id, name, location, service_address, client:clients(name)),
+       assignments:visit_assignments(
+         user_id,
+         profile:profiles(id, full_name, email)
+       )`,
     )
     .gte("scheduled_for", weekStartDate.toISOString())
     .lt("scheduled_for", weekEnd.toISOString())
     .order("scheduled_for", { ascending: true });
 
-  const all = (weekVisits ?? []).map((v) => {
+  // Day-count badges for the week strip.
+  const counts: Record<string, number> = {};
+  for (const v of weekVisits ?? []) {
+    const iso = new Date(v.scheduled_for).toISOString().slice(0, 10);
+    counts[iso] = (counts[iso] ?? 0) + 1;
+  }
+
+  // Filter to selected day + group by employee.
+  const selectedDay = (weekVisits ?? []).filter(
+    (v) => new Date(v.scheduled_for).toISOString().slice(0, 10) === selectedIso,
+  );
+
+  const columns = groupByEmployee(selectedDay);
+
+  // Flat list across employees for the day-grid + map views (which
+  // don't split by employee).
+  const flat: VisitRow[] = selectedDay.map((v) => {
     const p = Array.isArray(v.project) ? v.project[0] : v.project;
     const client = p?.client
       ? Array.isArray(p.client)
         ? p.client[0]
         : p.client
       : null;
-    const iso = new Date(v.scheduled_for).toISOString().slice(0, 10);
     return {
       id: v.id as string,
-      iso,
       raw: v.scheduled_for as string,
-      duration: v.duration_min as number | null,
+      durationMin: v.duration_min as number | null,
       status: v.status as string,
       title: (p?.name ?? "Visit") as string,
       clientName: (client?.name as string | null) ?? null,
@@ -87,61 +131,20 @@ export default async function CrewSchedule({
     };
   });
 
-  const counts: Record<string, number> = {};
-  for (const v of all) counts[v.iso] = (counts[v.iso] ?? 0) + 1;
-  const selectedDay = all.filter((v) => v.iso === selectedIso);
-
-  const monthLabel = weekStartDate.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-1 text-xl font-extrabold text-[#1a2332] dark:text-white">
-          {monthLabel}
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5 text-neutral-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </h1>
-        <ViewToggle value={view} />
-      </div>
+      {/* View toggle — sits below the top-bar's "April ▼" + filters. */}
+      <ViewToggle value={view} />
 
       <WeekStrip start={weekStart} selected={selectedIso} counts={counts} />
 
-      <div className="flex items-baseline justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-[#1a2332] dark:text-white">
-            {user.full_name ?? user.email.split("@")[0]}
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {selectedDay.length}{" "}
-            {selectedDay.length === 1 ? "visit" : "visits"}
-            {" · "}
-            {formatDayLabel(selectedIso)}
-          </p>
-        </div>
-      </div>
-
-      {selectedDay.length === 0 ? (
-        <EmptyCard lang={lang} />
-      ) : view === "day" ? (
+      {view === "day" ? (
         <DayGrid
-          visits={selectedDay.map(
+          visits={flat.map(
             (v): DayGridVisit => ({
               id: v.id,
               scheduled_for: v.raw,
-              duration_min: v.duration,
+              duration_min: v.durationMin,
               title: v.title,
               clientName: v.clientName,
               status: toCardStatus(v.status),
@@ -150,51 +153,173 @@ export default async function CrewSchedule({
         />
       ) : view === "map" ? (
         <CrewHomeMap
-          pins={selectedDay.map((v) => ({ id: v.id, address: v.address }))}
-          allAddresses={selectedDay
-            .map((v) => v.address)
-            .filter((a): a is string => Boolean(a))}
+          pins={flat.map((v) => ({ id: v.id, address: v.address }))}
+          allAddresses={flat.map((v) => v.address).filter((a): a is string => Boolean(a))}
         />
+      ) : columns.length === 0 ? (
+        <EmptyDay />
       ) : (
-        <div className="space-y-2">
-          {selectedDay.map((v) => (
-            <CrewJobCard
-              key={v.id}
-              visit={{
-                id: v.id,
-                title: v.title,
-                time: new Date(v.raw).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }),
-                clientName: v.clientName,
-                address: v.address,
-                status: toCardStatus(v.status),
-                durationMin: v.duration,
-              }}
-            />
-          ))}
-        </div>
+        <EmployeeColumns columns={columns} />
       )}
+
+      <CreateFab />
     </div>
   );
 }
 
-function formatDayLabel(iso: string): string {
-  const d = new Date(iso + "T12:00:00");
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
+function toCardStatus(s: string): "upcoming" | "in_progress" | "completed" | "late" {
+  if (s === "completed" || s === "cancelled") return "completed";
+  if (s === "in_progress") return "in_progress";
+  return "upcoming";
 }
 
-function EmptyCard({ lang }: { lang: "en" | "es" }) {
+function groupByEmployee(
+  visits: Array<{
+    id: string;
+    scheduled_for: string;
+    duration_min: number | null;
+    status: string;
+    project:
+      | { name: string; location?: string | null; service_address?: string | null; client?: { name: string } | { name: string }[] | null }
+      | Array<{ name: string; location?: string | null; service_address?: string | null; client?: { name: string } | { name: string }[] | null }>
+      | null;
+    assignments?:
+      | Array<{
+          user_id: string;
+          profile:
+            | { id: string; full_name: string | null; email: string }
+            | Array<{ id: string; full_name: string | null; email: string }>
+            | null;
+        }>
+      | null;
+  }>,
+): EmployeeColumn[] {
+  const colMap = new Map<string, EmployeeColumn>();
+  for (const v of visits) {
+    const p = Array.isArray(v.project) ? v.project[0] : v.project;
+    const client = p?.client
+      ? Array.isArray(p.client)
+        ? p.client[0]
+        : p.client
+      : null;
+    const row: VisitRow = {
+      id: v.id,
+      raw: v.scheduled_for,
+      durationMin: v.duration_min,
+      status: v.status,
+      title: p?.name ?? "Visit",
+      clientName: client?.name ?? null,
+      address: p?.service_address ?? p?.location ?? null,
+    };
+    const assignments = v.assignments ?? [];
+    if (assignments.length === 0) {
+      const key = "__unassigned__";
+      const col = colMap.get(key) ?? {
+        userId: key,
+        name: "Unassigned",
+        initials: "?",
+        totalCount: 0,
+        completedCount: 0,
+        visits: [],
+      };
+      col.totalCount += 1;
+      if (v.status === "completed") col.completedCount += 1;
+      col.visits.push(row);
+      colMap.set(key, col);
+      continue;
+    }
+    for (const a of assignments) {
+      const profile = Array.isArray(a.profile) ? a.profile[0] : a.profile;
+      const name =
+        profile?.full_name ?? profile?.email.split("@")[0] ?? "Crew";
+      const initials = name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((s: string) => s[0]?.toUpperCase() ?? "")
+        .join("");
+      const col = colMap.get(a.user_id) ?? {
+        userId: a.user_id,
+        name,
+        initials,
+        totalCount: 0,
+        completedCount: 0,
+        visits: [],
+      };
+      col.totalCount += 1;
+      if (v.status === "completed") col.completedCount += 1;
+      col.visits.push(row);
+      colMap.set(a.user_id, col);
+    }
+  }
+  return Array.from(colMap.values()).sort((a, b) => b.totalCount - a.totalCount);
+}
+
+function EmployeeColumns({ columns }: { columns: EmployeeColumn[] }) {
+  return (
+    <div className="-mx-4">
+      <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
+        {columns.map((col) => (
+          <div
+            key={col.userId}
+            className="w-[260px] shrink-0 snap-start space-y-2"
+          >
+            <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-neutral-800">
+              <p className="truncate text-sm font-bold text-[#1a2332] dark:text-white">
+                {col.name}
+              </p>
+              <p className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-bold text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
+                {col.completedCount}/{col.totalCount}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {col.visits.map((v) => (
+                <NavyVisitCard key={`${col.userId}-${v.id}`} visit={v} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NavyVisitCard({ visit }: { visit: VisitRow }) {
+  const start = new Date(visit.raw);
+  const end = new Date(start.getTime() + (visit.durationMin ?? 60) * 60_000);
+  const time =
+    visit.durationMin && visit.durationMin >= 23 * 60
+      ? "Anytime"
+      : `${start.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })} - ${end.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })}`;
+  return (
+    <Link
+      href={`/crew/visits/${visit.id}`}
+      className="block rounded-lg p-3 active:opacity-90"
+      style={{ background: "#1a2332", color: "white" }}
+    >
+      <p className="truncate text-sm font-bold">{visit.title}</p>
+      {visit.clientName && (
+        <p className="mt-0.5 truncate text-xs opacity-80">{visit.clientName}</p>
+      )}
+      <p className="mt-1 truncate text-xs opacity-80">{time}</p>
+      {visit.address && (
+        <p className="mt-0.5 truncate text-xs opacity-70">{visit.address}</p>
+      )}
+    </Link>
+  );
+}
+
+function EmptyDay() {
   return (
     <div className="rounded-xl bg-white p-8 text-center shadow-sm dark:bg-neutral-800">
       <p className="text-5xl">🏖</p>
       <p className="mt-3 text-base font-semibold text-[#1a2332] dark:text-white">
-        {t(lang, "Nothing scheduled today. Enjoy the breather.")}
+        Nothing scheduled.
       </p>
     </div>
   );

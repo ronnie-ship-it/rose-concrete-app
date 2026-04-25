@@ -172,7 +172,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
             <Link
               href={`/dashboard/projects/${projectId}`}
               aria-label="Add line item"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-[#4A7C59] text-lg font-bold leading-none text-white"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A7B40] text-lg font-bold leading-none text-white"
             >
               +
             </Link>
@@ -268,7 +268,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
                     {onSite && (
                       <span
                         aria-label="On site"
-                        className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#4A7C59] dark:border-neutral-800"
+                        className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#1A7B40] dark:border-neutral-800"
                       />
                     )}
                   </span>
@@ -276,7 +276,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
                     <p className="truncate text-sm font-semibold text-[#1a2332] dark:text-white">
                       {m.name}
                       {m.id === user.id && (
-                        <span className="ml-1 text-[10px] font-medium uppercase text-[#4A7C59]">
+                        <span className="ml-1 text-[10px] font-medium uppercase text-[#1A7B40]">
                           (you)
                         </span>
                       )}
@@ -334,7 +334,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
           >
             <svg
               viewBox="0 0 24 24"
-              className="h-5 w-5 text-[#4A7C59]"
+              className="h-5 w-5 text-[#1A7B40]"
               fill="none"
               stroke="currentColor"
               strokeWidth={2.25}
@@ -356,7 +356,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
         <h1 className="text-xl font-extrabold text-[#1a2332] dark:text-white">
           {project?.name ?? "Visit"}
         </h1>
-        <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-[#4A7C59]">
+        <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-[#1A7B40]">
           {client?.name && <span>{client.name}</span>}
           {client?.name && revenue > 0 && <span>·</span>}
           {revenue > 0 && <span>{money(revenue)}</span>}
@@ -391,7 +391,7 @@ export default async function CrewVisitDetail({ params }: { params: Params }) {
           >
             <svg
               viewBox="0 0 24 24"
-              className="h-4 w-4 text-[#4A7C59]"
+              className="h-4 w-4 text-[#1A7B40]"
               fill="none"
               stroke="currentColor"
               strokeWidth={2.25}
@@ -437,8 +437,8 @@ function StatusBadge({ status }: { status: VisitStatus }) {
     { bg: string; text: string; label: string; icon: string }
   > = {
       scheduled: {
-        bg: "bg-[#4A7C59]/10",
-        text: "text-[#4A7C59]",
+        bg: "bg-[#1A7B40]/10",
+        text: "text-[#1A7B40]",
         label: "Upcoming",
         icon: "🚛",
       },

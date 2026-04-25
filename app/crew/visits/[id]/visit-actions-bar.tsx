@@ -44,7 +44,7 @@ export function VisitActionsBar({ visitId, projectId, status }: Props) {
         type="button"
         onClick={onPrimary}
         disabled={primaryDisabled}
-        className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-lg bg-[#4A7C59] px-4 text-sm font-bold text-white shadow-sm active:opacity-90 disabled:bg-neutral-400"
+        className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-lg bg-[#1A7B40] px-4 text-sm font-bold text-white shadow-sm active:opacity-90 disabled:bg-neutral-400"
       >
         {status === "completed" ? (
           <span className="text-lg">✓</span>

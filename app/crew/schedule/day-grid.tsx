@@ -24,7 +24,7 @@ export type DayGridVisit = {
 };
 
 const STATUS_BG: Record<DayGridVisit["status"], string> = {
-  upcoming: "bg-[#4A7C59]/90 border-l-[#4A7C59]",
+  upcoming: "bg-[#1A7B40]/90 border-l-[#1A7B40]",
   in_progress: "bg-[#E8B74A]/90 border-l-[#E8B74A]",
   completed: "bg-neutral-500/90 border-l-neutral-600",
   late: "bg-[#E0443C]/90 border-l-[#E0443C]",

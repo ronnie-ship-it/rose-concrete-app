@@ -150,7 +150,7 @@ export default async function CrewTimesheet({
           {weekOpenCount > 0 && (
             <>
               {" · "}
-              <span className="font-semibold text-[#4A7C59]">
+              <span className="font-semibold text-[#1A7B40]">
                 {weekOpenCount} clocked in now
               </span>
             </>
@@ -235,7 +235,7 @@ function EntryLink({
     <div className="flex items-start gap-3 px-4 py-3">
       <span
         className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-          row.isOpen ? "bg-[#4A7C59] animate-pulse" : "bg-neutral-300"
+          row.isOpen ? "bg-[#1A7B40] animate-pulse" : "bg-neutral-300"
         }`}
       />
       <div className="min-w-0 flex-1">

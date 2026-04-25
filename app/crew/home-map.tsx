@@ -1,15 +1,19 @@
 "use client";
 
 /**
- * Crew home mini-map. Jobber shows an inline Google Map with pins
- * for every visit today. We don't have a Google Maps API key wired
- * yet, so this renders a clean "map-like" gradient card with a
- * count of today's stops + a "Route in Maps" CTA that opens the
- * multi-stop Google Maps URL (reuses the same route-optimize
- * ordering from the desktop schedule page).
+ * Jobber-mobile mini-map for the crew home screen.
  *
- * Once `GOOGLE_MAPS_API_KEY` is set (see lib/route-optimize comment),
- * we can swap the gradient for a Static Maps image and pin markers.
+ * Without a Google Maps API key wired up we render a stylized "map"
+ * SVG with road lines + neighborhood labels + a blue "you are here"
+ * dot, matching the Apr 2026 screenshot. Pins float on top for each
+ * scheduled visit (numbered green circles).
+ *
+ * The card is tappable as a whole — opens the multi-stop Google Maps
+ * URL with all of today's addresses ordered for a route. A "View all >"
+ * link sits in the bottom-right corner of the map (also tappable).
+ *
+ * Once `GOOGLE_MAPS_API_KEY` is set we can swap the SVG background for
+ * a Static Maps image without any other changes.
  */
 import Link from "next/link";
 
@@ -20,6 +24,15 @@ type Pin = {
   address: string | null;
 };
 
+const NEIGHBORHOODS = [
+  { x: 25, y: 28, label: "GRANT HILL" },
+  { x: 70, y: 32, label: "MT HOPE" },
+  { x: 18, y: 60, label: "LOGAN HEIGHTS" },
+  { x: 50, y: 55, label: "MOUNTAIN VIEW" },
+  { x: 22, y: 80, label: "BARRIO LOGAN" },
+  { x: 70, y: 78, label: "SOUTHCREST" },
+];
+
 export function CrewHomeMap({
   pins,
   allAddresses,
@@ -28,66 +41,139 @@ export function CrewHomeMap({
   /** Full list of addresses in route order for the Google Maps URL. */
   allAddresses: string[];
 }) {
-  const stopCount = pins.length;
   const mapsHref = buildMultiStopUrl(allAddresses);
 
   return (
-    <section className="relative overflow-hidden rounded-xl shadow-sm">
-      {/* Faux map — layered gradient with grid lines for "map feel". */}
+    <Link
+      href={mapsHref}
+      target="_blank"
+      rel="noreferrer"
+      className="relative block overflow-hidden rounded-2xl shadow-sm"
+    >
+      {/* Map area */}
       <div
         aria-hidden="true"
-        className="relative h-40 w-full"
+        className="relative h-52 w-full"
         style={{
           background:
-            "linear-gradient(135deg, #dbeadb 0%, #b5d6c0 40%, #8fbf9f 100%)",
+            "linear-gradient(180deg, #e8edf2 0%, #dde6ed 50%, #d4dfe6 100%)",
         }}
       >
-        {/* Subtle grid */}
+        {/* Road network — soft gray lines */}
         <svg
-          className="absolute inset-0 h-full w-full opacity-30"
-          viewBox="0 0 400 160"
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 400 200"
           preserveAspectRatio="none"
         >
-          <defs>
-            <pattern id="map-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#4A7C59" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="400" height="160" fill="url(#map-grid)" />
+          {/* Major roads */}
+          <path
+            d="M 0 80 Q 100 70 200 90 T 400 100"
+            stroke="#FFF"
+            strokeWidth="6"
+            fill="none"
+          />
+          <path
+            d="M 0 80 Q 100 70 200 90 T 400 100"
+            stroke="#C9D2DA"
+            strokeWidth="2"
+            fill="none"
+          />
+          <path
+            d="M 60 0 Q 80 80 100 200"
+            stroke="#FFF"
+            strokeWidth="5"
+            fill="none"
+          />
+          <path
+            d="M 60 0 Q 80 80 100 200"
+            stroke="#C9D2DA"
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <path
+            d="M 280 0 Q 300 100 290 200"
+            stroke="#FFF"
+            strokeWidth="5"
+            fill="none"
+          />
+          <path
+            d="M 280 0 Q 300 100 290 200"
+            stroke="#C9D2DA"
+            strokeWidth="1.5"
+            fill="none"
+          />
+          {/* Minor street grid */}
+          <g stroke="#FFF" strokeWidth="2" fill="none" opacity="0.7">
+            <path d="M 0 40 L 400 50" />
+            <path d="M 0 130 L 400 145" />
+            <path d="M 0 170 L 400 175" />
+            <path d="M 150 0 L 145 200" />
+            <path d="M 220 0 L 215 200" />
+            <path d="M 360 0 L 355 200" />
+          </g>
+          {/* Water tint on left edge — San Diego Bay vibe */}
+          <rect x="0" y="120" width="50" height="80" fill="#bcd5e6" opacity="0.6" />
         </svg>
-        {/* Pins — distributed pseudo-randomly by index */}
+
+        {/* Neighborhood labels */}
         <div className="absolute inset-0">
-          {pins.slice(0, 5).map((p, i) => {
-            const left = 15 + (i * 73) % 80;
-            const top = 20 + (i * 41) % 60;
+          {NEIGHBORHOODS.map((n) => (
+            <span
+              key={n.label}
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-wider text-neutral-500"
+              style={{ left: `${n.x}%`, top: `${n.y}%` }}
+            >
+              {n.label}
+            </span>
+          ))}
+        </div>
+
+        {/* You-are-here blue dot — center of the map */}
+        <span
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+        >
+          <span className="absolute h-5 w-5 animate-ping rounded-full bg-[#3B82F6] opacity-30" />
+          <span className="relative h-3 w-3 rounded-full border-2 border-white bg-[#3B82F6] shadow" />
+        </span>
+
+        {/* Visit pins — distributed pseudo-randomly by index */}
+        <div className="absolute inset-0">
+          {pins.slice(0, 8).map((p, i) => {
+            const left = 18 + (i * 73) % 70;
+            const top = 22 + (i * 41) % 55;
             return (
-              <div
+              <span
                 key={p.id}
-                className="absolute flex items-center justify-center"
+                className="absolute -translate-x-1/2 -translate-y-1/2"
                 style={{ left: `${left}%`, top: `${top}%` }}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4A7C59] text-xs font-bold text-white shadow-lg ring-2 ring-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A7B40] text-[10px] font-bold text-white shadow-md ring-2 ring-white">
                   {i + 1}
-                </div>
-              </div>
+                </span>
+              </span>
             );
           })}
         </div>
+
+        {/* "View all >" floating label in bottom-right */}
+        <span className="absolute bottom-3 right-3 inline-flex items-center gap-0.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#1a2332] shadow-sm">
+          View all
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </span>
       </div>
-      <Link
-        href={mapsHref}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center justify-between gap-3 bg-white px-4 py-3 text-sm dark:bg-neutral-800"
-      >
-        <span className="font-semibold text-[#1a2332] dark:text-white">
-          {stopCount} {stopCount === 1 ? "stop" : "stops"} today
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#4A7C59] px-3 py-1 text-xs font-bold text-white">
-          Route in Maps →
-        </span>
-      </Link>
-    </section>
+    </Link>
   );
 }
 
@@ -95,10 +181,10 @@ function buildMultiStopUrl(addresses: string[]): string {
   const valid = addresses.filter((a) => a && a.trim());
   if (valid.length === 0) return "https://www.google.com/maps";
   if (valid.length === 1) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(valid[0])}&travelmode=driving`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+      valid[0],
+    )}&travelmode=driving`;
   }
-  // For multi-stop, the destination is the last stop, and intermediate
-  // stops go into `waypoints`. Google accepts up to 9 waypoints for free.
   const destination = valid[valid.length - 1];
   const waypoints = valid.slice(0, valid.length - 1).slice(0, 9);
   const params = new URLSearchParams({

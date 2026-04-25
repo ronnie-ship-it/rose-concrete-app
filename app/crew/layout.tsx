@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { ServiceWorkerRegister } from "./sw-register";
 import { BottomNav } from "./bottom-nav";
 import { CrewTopBar } from "./top-bar";
@@ -13,7 +14,7 @@ import { CrewTopBar } from "./top-bar";
  *     / More). iOS safe-area padding baked in.
  *
  * Colors:
- *   Primary green: #4A7C59
+ *   Primary green: #1A7B40
  *   Dark text:     #1a2332
  *   Background:    #f5f5f5
  */
@@ -24,7 +25,15 @@ export default async function CrewLayout({
 }) {
   // Admin/office previews the crew PWA for QA; keeping both roles
   // enabled because prior flows depend on it.
-  await requireRole(["crew", "admin", "office"]);
+  const user = await requireRole(["crew", "admin", "office"]);
+  const supabase = await createClient();
+
+  // Bell badge — number of unread notifications for this user.
+  const { count: unreadCount } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .is("read_at", null);
 
   return (
     <div
@@ -34,7 +43,7 @@ export default async function CrewLayout({
       }}
     >
       <ServiceWorkerRegister />
-      <CrewTopBar today={new Date()} />
+      <CrewTopBar today={new Date()} unreadCount={unreadCount ?? 0} />
       <main className="mx-auto max-w-lg px-4 py-4">{children}</main>
       <BottomNav />
     </div>
