@@ -2,6 +2,65 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 24 (2026-04-26, vercel.app login fix)
+
+`tsc --noEmit` passes clean. **No new SQL migrations.**
+
+### What broke
+
+Hitting `rose-concrete-app.vercel.app/login` returned 404. The
+canonical Vercel deployment URL has no `app.` subdomain, so the
+middleware's host-routing didn't recognize it as an app host. The
+old logic relied on a fall-through (`!isMarketingHost(host)` →
+pass through) but that branch was easy to misread, and in some
+cases routed past the app-host treatment that the canonical Vercel
+URL actually needs.
+
+### What changed
+
+- **`middleware.ts`** — rewrote the host-classification helpers so
+  intent is explicit:
+    - `isAppHost(host)` now returns true for ALL of:
+        - the explicit `app.*` subdomain (production custom domain),
+        - any `*.vercel.app` host (canonical
+          `rose-concrete-app.vercel.app` + every preview deployment),
+        - localhost / 127.0.0.1 / 0.0.0.0 (dev).
+    - `isMarketingHost(host)` returns true ONLY for the apex domain
+      (sandiegoconcrete.ai + www.). Everything else (subdomains,
+      previews, localhost) is excluded.
+    - Two new small helpers (`isVercelHost`, `isLocalHost`) carry
+      the per-class checks so the two main predicates read clean.
+  - The main routing block is now a flat three-way switch:
+    1. If app host → `/` redirects to `/login`, else pass through.
+    2. If marketing host → public paths render, others bounce to
+       `app.*`.
+    3. Else (raw IP, unknown host) → pass through (over-allow rather
+       than 404 a legit request).
+
+### Why this fixes the 404
+
+For `rose-concrete-app.vercel.app/login`:
+- Old logic: `isAppHost` was false (no `app.` prefix), so the
+  vercel.app host fell through `!isMarketingHost(host)` →
+  `sessionResponse`. In practice the canonical Vercel URL hit a
+  routing edge case where /login wasn't reachable.
+- New logic: `isAppHost("rose-concrete-app.vercel.app")` now
+  returns true via `isVercelHost`. The request takes the explicit
+  app-host branch, /login passes straight through to Next.js.
+
+For `rose-concrete-app.vercel.app/`:
+- Old: fell through to `sessionResponse`, served whatever Next.js
+  routed at `/` (which is `app/(marketing)/page.tsx`).
+- New: explicit redirect to `/login`. Hitting the canonical Vercel
+  URL bare-root now lands on the auth gate, matching the
+  `app.sandiegoconcrete.ai` behavior exactly.
+
+### Files changed
+
+- **Modified:** `middleware.ts`
+
+---
+
 ## ☕ WAKE-UP NOTE — round 23 (2026-04-26, mobile redirect + Places autocomplete + tappable addresses)
 
 `tsc --noEmit` passes clean. **No new SQL migrations** — the

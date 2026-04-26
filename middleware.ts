@@ -4,9 +4,15 @@ import { updateSession } from "@/lib/supabase/middleware";
 /**
  * Host-based routing.
  *
- *   sandiegoconcrete.ai (+ www)  →  marketing site (apex).
- *   app.sandiegoconcrete.ai      →  dashboard + crew PWA.
- *   localhost / *.vercel.app     →  everything (dev convenience).
+ *   sandiegoconcrete.ai (+ www)         →  marketing site (apex).
+ *   app.sandiegoconcrete.ai             →  dashboard + crew PWA.
+ *   *.vercel.app  (incl. the canonical  →  dashboard + crew PWA. The
+ *     rose-concrete-app.vercel.app)        Vercel deployment URL has no
+ *                                          `app.` subdomain, so we treat
+ *                                          every *.vercel.app host as an
+ *                                          app host so /login, /dashboard,
+ *                                          and /crew are all reachable.
+ *   localhost / 127.0.0.1               →  everything (dev convenience).
  *
  * THE FIRST THING THIS FILE DOES, before anything else, is catch any
  * request carrying ?code= or ?token_hash= and forward it to
@@ -63,16 +69,49 @@ function stripWww(host: string): string {
   return host.replace(/^www\./, "");
 }
 
-function isAppHost(host: string): boolean {
-  return host.toLowerCase().startsWith(APP_HOST_PREFIX);
+function isVercelHost(host: string): boolean {
+  return host.toLowerCase().endsWith(".vercel.app");
 }
 
+function isLocalHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return (
+    h.includes("localhost") ||
+    h.startsWith("127.0.0.1") ||
+    h.startsWith("0.0.0.0")
+  );
+}
+
+/**
+ * App hosts are anywhere we want to serve the business app (login,
+ * dashboard, crew PWA). That's:
+ *
+ *   - the explicit `app.` subdomain (production custom domain),
+ *   - every *.vercel.app deployment URL (the canonical
+ *     `rose-concrete-app.vercel.app` plus every preview),
+ *   - localhost / 127.0.0.1 for local dev.
+ *
+ * On all of these, bare `/` redirects to `/login` and every other
+ * path is passed through to Next.js.
+ */
+function isAppHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h.startsWith(APP_HOST_PREFIX)) return true;
+  if (isVercelHost(h)) return true;
+  if (isLocalHost(h)) return true;
+  return false;
+}
+
+/**
+ * Marketing hosts are the apex domain (sandiegoconcrete.ai +
+ * www.sandiegoconcrete.ai) — not subdomains, not previews, not
+ * localhost. The marketing site lives there.
+ */
 function isMarketingHost(host: string): boolean {
   const h = stripWww(host).toLowerCase();
   if (h.startsWith(APP_HOST_PREFIX)) return false;
-  if (h.includes("localhost")) return false;
-  if (h.endsWith(".vercel.app")) return false;
-  if (h.startsWith("127.0.0.1") || h.startsWith("0.0.0.0")) return false;
+  if (isVercelHost(h)) return false;
+  if (isLocalHost(h)) return false;
   return true;
 }
 
@@ -140,7 +179,10 @@ export async function middleware(request: NextRequest) {
   // dashboard surface, harmless on the marketing surface.
   const sessionResponse = await updateSession(request);
 
-  // App subdomain: bare `/` is the auth gate.
+  // App host (app.* subdomain, *.vercel.app, or localhost). Bare `/`
+  // is the auth gate; every other path is passed through to Next.js.
+  // This is what makes /login, /dashboard, /crew, etc. reachable on
+  // the canonical rose-concrete-app.vercel.app deployment URL.
   if (isAppHost(host)) {
     if (pathname === "/") {
       const url = request.nextUrl.clone();
@@ -150,20 +192,21 @@ export async function middleware(request: NextRequest) {
     return sessionResponse;
   }
 
-  if (!isMarketingHost(host)) {
-    // localhost, vercel.app previews, raw IPs — everything's accessible.
-    return sessionResponse;
-  }
-
   // Marketing host. Public paths render directly; everything else
   // bounces to the app.* subdomain.
-  if (isPublicPath(pathname)) {
-    return sessionResponse;
+  if (isMarketingHost(host)) {
+    if (isPublicPath(pathname)) {
+      return sessionResponse;
+    }
+    const protocol = request.nextUrl.protocol || "https:";
+    const target = `${protocol}//${appHostFromMarketing(host)}${pathname}${search}`;
+    return NextResponse.redirect(target);
   }
 
-  const protocol = request.nextUrl.protocol || "https:";
-  const target = `${protocol}//${appHostFromMarketing(host)}${pathname}${search}`;
-  return NextResponse.redirect(target);
+  // Anything else (raw IPs, unrecognized hosts) — pass through. We'd
+  // rather over-allow than 404 a legitimate request from a domain
+  // we forgot to enumerate.
+  return sessionResponse;
 }
 
 export const config = {
