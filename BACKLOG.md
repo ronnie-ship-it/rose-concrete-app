@@ -2,6 +2,123 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 23 (2026-04-26, mobile redirect + Places autocomplete + tappable addresses)
+
+`tsc --noEmit` passes clean. **No new SQL migrations** — the
+`clients` table already had `address`, `city`, `state`, `postal_code`
+columns from migration 001.
+
+### What's new
+
+#### 1. Mobile redirect for admin/office
+**`components/mobile-redirect.tsx`** — small client-side guard mounted
+in `app/dashboard/layout.tsx`. On mount + on every resize, if
+`window.innerWidth < 768` (Tailwind's `md` breakpoint), it bounces
+the user to `/crew`. Phones get the Jobber-style mobile UI
+automatically; desktops/tablets keep the dashboard. Respects a
+`localStorage["rc:force-desktop"] = "1"` flag so a user can opt back
+into desktop on a phone (we'll wire the toggle to /crew/more in a
+follow-up).
+
+#### 2. Address fields on the New Client form
+- Added `city`, `state`, `postal_code` to the `clients.insert(...)`
+  in `app/crew/create/actions.ts`.
+- The crew "New client" page now mounts the new
+  `<AddressAutocomplete>` component instead of a single plain text
+  input. Four form fields submit: `address` / `city` / `state` /
+  `postal_code`.
+
+#### 3. Google Places autocomplete (`components/address-autocomplete.tsx`)
+- Lazy-loads the Maps JavaScript API + Places library on first focus
+  of the address field — no script tag in the global head, so non-
+  client-form pages don't pay for it.
+- New session-token API (`AutocompleteSessionToken`) — keeps Google's
+  billing predictable (one session = one Place Details fetch).
+- Restricts results to US addresses + `types: ["address"]`.
+- Renders the suggestion dropdown ourselves with Tailwind so it
+  matches the Jobber-style aesthetic — Google's built-in widget
+  injects an unstyled `gmaps` div that's hard to theme.
+- When a suggestion is picked, parses `address_components` into
+  street / city / state (2-letter) / zip and fills four hidden form
+  inputs.
+- **Falls back gracefully** when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is
+  missing: still works as plain editable inputs, with a small note
+  telling Ronnie to add the key.
+
+#### 4. Tappable address everywhere (`components/address-link.tsx` + `components/maps-tap.tsx`)
+- New `<AddressLink>` server component — wraps an address string in
+  a Next `<Link>` to the universal Google Maps URL. iOS + Android
+  both intercept that into Apple Maps / Google Maps native apps when
+  set as default.
+- New `<MapsTap>` client component — for use INSIDE another `<Link>`
+  wrapper. Renders a `<button>` styled like a link; click calls
+  `e.preventDefault()` + `e.stopPropagation()` + `window.open(href)`
+  so the parent link doesn't fire. (Nested anchors would be invalid
+  HTML.)
+- Both helpers default to **directions** mode (`/maps/dir/?api=1&
+  destination=...&travelmode=driving`) so the tap drops the crew
+  member straight into turn-by-turn nav.
+- `components/clickable.tsx` — flipped `kind="map"` from search →
+  directions URL, and added a comment explaining the iOS/Android
+  default-app behavior.
+- Wired into:
+    • `app/crew/job-card.tsx` — address row in the home + schedule
+      cards now opens Maps without firing the parent visit-detail
+      link
+    • `app/crew/schedule/page.tsx` (NavyVisitCard) — the dark cards
+      in the multi-employee columns
+    • Crew visit detail (`app/crew/visits/[id]/page.tsx`) was already
+      using a directions URL on the address row (verified)
+    • Client detail + project detail (dashboard) — already use
+      `<Clickable kind="map">` which now goes to directions
+
+### To activate Places autocomplete
+
+Add to Vercel project env vars (Production + Preview):
+
+```
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
+```
+
+Then in Google Cloud Console for that project:
+1. **Maps JavaScript API** — enable
+2. **Places API (New)** — enable
+3. Restrict the key to your production + preview hostnames (HTTP
+   referrer restriction)
+
+The form will start showing live suggestions on the next deploy.
+Until then the four address inputs work as plain text.
+
+### Files changed this round
+
+- **New:**
+  `components/mobile-redirect.tsx`
+  `components/address-link.tsx`
+  `components/address-autocomplete.tsx`
+  `components/maps-tap.tsx`
+- **Modified:**
+  `app/dashboard/layout.tsx` (mounts MobileRedirect)
+  `app/crew/create/client/page.tsx` (uses AddressAutocomplete)
+  `app/crew/create/actions.ts` (handles city/state/postal_code)
+  `app/crew/job-card.tsx` (address → MapsTap)
+  `app/crew/schedule/page.tsx` (NavyVisitCard address → MapsTap)
+  `components/clickable.tsx` (map kind → directions URL)
+
+### Known gaps
+
+- The crew /more page still doesn't have a "View desktop site"
+  toggle that sets `rc:force-desktop=1` to opt out of the mobile
+  redirect. Add when needed.
+- New Job + New Invoice forms have a "Property address" picker
+  button that links to `/dashboard/clients` — would be nicer to
+  inline the AddressAutocomplete widget there too. Same for the
+  legacy `/dashboard/clients/new` form.
+- Crew home map (`home-map.tsx`) is still SVG faux. Wiring it to
+  Static Maps via the new `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is a
+  small follow-up.
+
+---
+
 ## ☕ WAKE-UP NOTE — round 22 (2026-04-25, kill the service worker)
 
 ### Why

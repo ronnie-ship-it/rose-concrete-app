@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { createClientFromCrewAction } from "../actions";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import {
   CrewCreateChrome,
   FieldInput,
@@ -123,20 +124,18 @@ export default async function CrewNewClient() {
 
       <SectionSpacer />
 
-      {/* Property address — full-width with a leading pin icon */}
+      {/* Property address — Google Places autocomplete fills in
+          the four address fields automatically when you pick a
+          suggestion. Falls back to plain editable inputs when the
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY isn't set. */}
       <div className="px-4 py-3">
-        <div className="flex items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-3 dark:border-neutral-700 dark:bg-neutral-800">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-neutral-400" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z" />
-            <circle cx="12" cy="9" r="3" />
-          </svg>
-          <input
-            name="address"
-            type="text"
-            placeholder="Property address"
-            className="flex-1 bg-transparent text-sm text-[#1a2332] placeholder:text-neutral-400 focus:outline-none dark:text-white"
-          />
-        </div>
+        <AddressAutocomplete
+          streetName="address"
+          cityName="city"
+          stateName="state"
+          postalCodeName="postal_code"
+          placeholder="Property address"
+        />
       </div>
     </CrewCreateChrome>
   );

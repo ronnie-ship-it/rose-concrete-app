@@ -87,6 +87,17 @@ const SERVICE_AREA_CONTENT: Record<string, Omit<ServiceArea, "city" | "slug">> =
       "UC homeowners typically want the job done right and out of the way — we schedule tightly, communicate the day-by-day plan in writing, and clean up so you don't notice the crew was there.",
     zipCodes: ["92122"],
   },
+  "La Jolla": {
+    metaTitle: "Concrete Contractor in La Jolla | Rose Concrete",
+    metaDescription:
+      "Concrete contractor in La Jolla. Coastal driveways, decorative patios, pool decks, and retaining walls on hillside lots. CA License #1130763. (619) 537-9408.",
+    h1: "Concrete Contractor in La Jolla",
+    localContext:
+      "La Jolla is North County coastal — ocean views, hillside lots, premium real estate, and a strong preference for concrete that matches the architecture of the home. Most calls here are for decorative driveways, stamped patios, exposed-aggregate pool decks, and the retaining walls that hold sloped properties together.\n\nCoastal location matters — salt air drives our rebar coverage spec so the work lasts. Many La Jolla lots also have significant grade changes that combine retaining-wall engineering with the flatwork above.",
+    whyHere:
+      "La Jolla properties don't tolerate shortcuts. We pour to coastal spec — proper rebar coverage for salt-air durability, integrated drainage on hillside lots, and finish work that matches the look of the home. Veteran-owned, fully insured, in-house crew on every job.",
+    zipCodes: ["92037"],
+  },
   "La Mesa": {
     metaTitle: "Concrete Contractor in La Mesa | Rose Concrete",
     metaDescription:

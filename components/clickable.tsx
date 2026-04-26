@@ -15,9 +15,15 @@ type Kind = "tel" | "mail" | "map";
 function hrefFor(kind: Kind, value: string): string {
   if (kind === "tel") return `tel:${value.replace(/[^0-9+]/g, "")}`;
   if (kind === "mail") return `mailto:${value}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    value
-  )}`;
+  // `kind === "map"` → directions URL. iOS + Android both intercept
+  // this universal Google Maps link into the user's default Maps app
+  // (Apple Maps if it's set as default; Google Maps otherwise). Using
+  // the `dir/` path with `destination` puts the user on a turn-by-turn
+  // directions screen, not a search result — closer to what crew want
+  // when they tap an address from the field.
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    value,
+  )}&travelmode=driving`;
 }
 
 const ICON: Record<Kind, string> = {

@@ -27,6 +27,9 @@ export async function createClientFromCrewAction(formData: FormData): Promise<vo
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const email = String(formData.get("email") ?? "").trim() || null;
   const address = String(formData.get("address") ?? "").trim() || null;
+  const city = String(formData.get("city") ?? "").trim() || null;
+  const state = String(formData.get("state") ?? "").trim().toUpperCase() || null;
+  const postalCode = String(formData.get("postal_code") ?? "").trim() || null;
   const leadSource = String(formData.get("lead_source") ?? "").trim() || null;
 
   // Name preference: company → first+last → just first
@@ -38,7 +41,16 @@ export async function createClientFromCrewAction(formData: FormData): Promise<vo
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("clients")
-    .insert({ name, phone, email, address, source: leadSource })
+    .insert({
+      name,
+      phone,
+      email,
+      address,
+      city,
+      state,
+      postal_code: postalCode,
+      source: leadSource,
+    })
     .select("id")
     .single();
   if (error) {

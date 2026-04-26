@@ -1,12 +1,13 @@
 /**
  * Shared Jobber-mobile visit card. Colored left border strip
  * indicates status (green = upcoming / in-progress / completed).
- * Tappable — wraps the whole card in a Link to the visit detail.
- * Title, time, address, client, status pill.
+ * The card itself links to the visit detail; the address row
+ * peels off via <MapsTap> so a tap there opens Maps instead.
  *
  * Used on crew home (horizontal scroll) + crew schedule list.
  */
 import Link from "next/link";
+import { MapsTap } from "@/components/maps-tap";
 
 export type CrewJobCardData = {
   id: string;
@@ -77,9 +78,9 @@ export function CrewJobCard({
           </p>
         )}
         {visit.address && (
-          <p className="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-neutral-400">
-            📍 {visit.address}
-          </p>
+          <div className="mt-0.5">
+            <MapsTap address={visit.address} />
+          </div>
         )}
       </div>
     </Link>

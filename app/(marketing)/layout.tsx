@@ -4,6 +4,8 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { MobileCallBar } from "@/components/marketing/mobile-call-bar";
 import { StickyTrustBar } from "@/components/marketing/trust-bar";
 import { GtmHeadScript, GtmNoScript } from "@/components/marketing/gtm";
+import { Ga4Script } from "@/components/marketing/ga4";
+import { GoogleAdsScript } from "@/components/marketing/google-ads";
 import { PhoneClickTracker } from "@/components/marketing/phone-click-tracker";
 import { SITE_ORIGIN } from "@/lib/marketing/schema";
 
@@ -92,6 +94,12 @@ export default function MarketingLayout({
     <div className="min-h-screen bg-white text-brand-900">
       <GtmHeadScript />
       <GtmNoScript />
+      {/* GA4 + Google Ads — direct gtag.js. Both env-gated; render
+          nothing if the corresponding NEXT_PUBLIC_* var is unset.
+          Only mounted in the (marketing) tree so internal admin
+          traffic on /dashboard and /crew is never measured. */}
+      <Ga4Script />
+      <GoogleAdsScript />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded focus:bg-brand-900 focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-white"

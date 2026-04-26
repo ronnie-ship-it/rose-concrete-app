@@ -8,7 +8,7 @@ import {
 import { usePathname } from "next/navigation";
 import { z } from "zod";
 import { Button, buttonClassNames } from "@/components/ui/button";
-import { pushEvent } from "@/lib/marketing/analytics";
+import { pushEvent, trackGenerateLead } from "@/lib/marketing/analytics";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -18,7 +18,7 @@ import {
   PHONE_TEL_HREF,
   TRUST_SIGNALS,
 } from "@/lib/marketing/brand";
-import { SERVICE_TYPES, SERVICE_LABEL } from "@/lib/service-types";
+import { MARKETING_FORM_SERVICE_TYPES, SERVICE_LABEL } from "@/lib/service-types";
 
 /**
  * Lead capture form — the most important component on the marketing site.
@@ -189,14 +189,26 @@ export function LeadForm({
         firstName,
         smsConfirmed: !!json.responded?.sms,
       });
-      // Fire GTM event so the analytics container can attribute the lead.
-      // Safe to call even when GTM isn't loaded — see lib/marketing/analytics.
+      // Fire three analytics transports in parallel:
+      //   - GTM dataLayer push (`lead_submitted`) — for any tags managed
+      //     in the GTM container.
+      //   - GA4 `generate_lead` recommended event — direct gtag, shows
+      //     up in the property's Conversions report with source_page
+      //     attribution.
+      //   - Google Ads conversion (if NEXT_PUBLIC_GADS_CONVERSION_ID is
+      //     set) — fires the AW- conversion event for paid-traffic ROI.
+      // All three no-op safely when their respective env / tag isn't
+      // loaded. None throw. None can break the form's success path.
       pushEvent({
         event: "lead_submitted",
         source_page: pathname,
         service_type: parsed.data.service_type || undefined,
         had_phone: !!parsed.data.phone,
         had_email: !!parsed.data.email,
+      });
+      trackGenerateLead({
+        source_page: pathname,
+        service_type: parsed.data.service_type || undefined,
       });
     } catch {
       setState({
@@ -345,7 +357,7 @@ export function LeadForm({
             aria-invalid={!!errors.service_type}
           >
             <option value="">— choose one —</option>
-            {SERVICE_TYPES.map((s) => (
+            {MARKETING_FORM_SERVICE_TYPES.map((s) => (
               <option key={s} value={s}>
                 {SERVICE_LABEL[s]}
               </option>

@@ -54,6 +54,7 @@ export const SERVICE_AREAS = [
   "City Heights",
   "Solana Beach",
   "University City",
+  "La Jolla",
   "La Mesa",
   "Chula Vista",
   "El Cajon",

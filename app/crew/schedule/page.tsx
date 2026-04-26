@@ -6,6 +6,7 @@ import { ViewToggle, type ScheduleView } from "./view-toggle";
 import { DayGrid, type DayGridVisit } from "./day-grid";
 import { CrewHomeMap } from "../home-map";
 import { CreateFab } from "../create-fab";
+import { MapsTap } from "@/components/maps-tap";
 
 export const metadata = { title: "Schedule — Rose Concrete" };
 
@@ -308,7 +309,13 @@ function NavyVisitCard({ visit }: { visit: VisitRow }) {
       )}
       <p className="mt-1 truncate text-xs opacity-80">{time}</p>
       {visit.address && (
-        <p className="mt-0.5 truncate text-xs opacity-70">{visit.address}</p>
+        <div className="mt-0.5">
+          <MapsTap
+            address={visit.address}
+            showPin={false}
+            className="max-w-full truncate text-left text-xs text-white/70 underline decoration-white/30 underline-offset-2 hover:decoration-white"
+          />
+        </div>
       )}
     </Link>
   );

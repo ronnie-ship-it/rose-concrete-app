@@ -82,3 +82,31 @@ export function serviceLabel(v: string | null | undefined): string {
   if (isServiceType(v)) return SERVICE_LABEL[v];
   return v.replace(/_/g, " ");
 }
+
+/**
+ * Service-types deliberately HIDDEN from the public marketing form
+ * dropdown. These remain valid `ServiceType` values for historical
+ * leads + internal dashboards, but a homeowner can't pick them on the
+ * lead form anymore.
+ *
+ * - `foundation` — Rose Concrete is no longer doing foundation work
+ *   going forward (decided 2026-04-25). Out of scope. The DB enum
+ *   value stays so historical lead rows continue to type-check; only
+ *   the marketing form hides it.
+ *
+ * Used by `MARKETING_FORM_SERVICE_TYPES` below — that's what the
+ * <LeadForm /> dropdown iterates.
+ */
+export const EXCLUDED_FROM_MARKETING_FORM = new Set<ServiceType>([
+  "foundation",
+]);
+
+/**
+ * The service-type list that drives the public marketing form dropdown.
+ * Same as `SERVICE_TYPES` minus anything in `EXCLUDED_FROM_MARKETING_FORM`.
+ *
+ * Internal dashboards / forms keep using `SERVICE_TYPES` directly so
+ * they can still display + filter historical foundation leads.
+ */
+export const MARKETING_FORM_SERVICE_TYPES: readonly ServiceType[] =
+  SERVICE_TYPES.filter((s) => !EXCLUDED_FROM_MARKETING_FORM.has(s));
