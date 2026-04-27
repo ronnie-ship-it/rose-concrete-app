@@ -1,11 +1,11 @@
 import { requireRole } from "@/lib/auth";
 import { createClientFromCrewAction } from "../actions";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { ContactImportButton } from "@/components/contact-import-button";
 import {
   CrewCreateChrome,
   FieldInput,
   AddLink,
-  PickerButton,
   SectionSpacer,
 } from "../chrome";
 
@@ -38,19 +38,14 @@ export default async function CrewNewClient() {
       saveLabel="Save"
       formAction={createClientFromCrewAction}
     >
-      {/* Add From Contacts (placeholder — would open the iOS contact picker) */}
-      <div className="px-4 pt-4">
-        <PickerButton
-          href="/crew/create/client"
-          icon={
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="10" r="3" />
-              <path d="M6 19c1.5-3 4-4.5 6-4.5s4.5 1.5 6 4.5" />
-            </svg>
-          }
-          label="Add From Contacts"
-        />
+      {/* Add from Contacts — opens the device's native contact picker
+          (Android Chrome's `navigator.contacts.select`) and pre-fills
+          first/last name + phone + email. iOS Safari doesn't support
+          the API; the button shows an "unavailable" state there
+          rather than disappearing entirely so the form layout stays
+          consistent with the Jobber screenshot. */}
+      <div className="pt-2">
+        <ContactImportButton />
       </div>
 
       {/* First / Last name */}

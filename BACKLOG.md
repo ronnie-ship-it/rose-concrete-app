@@ -2,6 +2,57 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 25 (2026-04-26, contact picker on New Client)
+
+`tsc --noEmit` passes clean. **No new SQL migrations.**
+
+### What's new
+
+**`components/contact-import-button.tsx`** — wires the browser
+Contact Picker API to the Jobber-style "Add from Contacts" button at
+the top of the New Client form.
+
+- Calls `navigator.contacts.select(["name","tel","email"], {multiple:false})`
+- Splits the returned name on whitespace into `first_name` + `last_name`,
+  normalizes the phone (keeps a leading `+`, strips formatting), and
+  takes the first email if present.
+- Writes each value into the matching form input via the React-aware
+  prototype setter so it survives any subsequent re-render, plus
+  dispatches an `input` event so listeners (none today, but cheap
+  insurance) get notified.
+- Shows transient state on the button: `Add from Contacts` → `Opening
+  contacts…` → `Imported ✓` (auto-clears after ~2s). The user
+  cancelling the OS picker just returns to idle without an error.
+
+### Browser support
+
+- **Android Chrome 80+ / Edge / Samsung Internet** — full support.
+- **iOS Safari** — NOT supported. Apple has not shipped the Contact
+  Picker API. The button stays visible (matches Jobber's screenshot
+  layout) but renders disabled with the label *"Add from Contacts
+  (unavailable)"* and a small note: *"The Contact Picker isn't
+  available on this browser. It works on Android Chrome — on iPhone,
+  copy the contact in manually."* Keeping the button visible (vs.
+  hiding it) avoids jumping the form layout between platforms.
+- **Desktop browsers** — same fallback applies.
+
+### Files changed
+
+- **New:** `components/contact-import-button.tsx`
+- **Modified:** `app/crew/create/client/page.tsx`
+
+### Known gaps
+
+- Address picking is **not** wired — the Contact Picker can return
+  structured addresses but they don't reconcile cleanly with the
+  Google Places autocomplete already on the form. Skipped for v1;
+  the user fills the address themselves via the autocomplete.
+- iOS users are stuck typing manually until Apple ships the API.
+  When Apple does, no code change needed — the same support check
+  flips on automatically.
+
+---
+
 ## ☕ WAKE-UP NOTE — round 24 (2026-04-26, vercel.app login fix)
 
 `tsc --noEmit` passes clean. **No new SQL migrations.**
