@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ServiceWorkerUnregister } from "./sw-unregister";
 import { BottomNav } from "./bottom-nav";
 import { CrewTopBar } from "./top-bar";
+import { CrewToast } from "./toast";
 
 /**
  * Crew PWA chrome — Jobber-mobile parity.
@@ -52,6 +54,12 @@ export default async function CrewLayout({
     >
       <ServiceWorkerUnregister />
       <CrewTopBar today={new Date()} unreadCount={unreadCount ?? 0} />
+      {/* Suspense boundary required because CrewToast uses
+          useSearchParams (a client-only hook) inside a server-
+          rendered layout shell. */}
+      <Suspense fallback={null}>
+        <CrewToast />
+      </Suspense>
       <main className="mx-auto max-w-lg px-4 py-4">{children}</main>
       <BottomNav />
     </div>

@@ -2,6 +2,145 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 26 (2026-04-26, fix every broken crew flow)
+
+`tsc --noEmit` passes clean. **No new SQL migrations.**
+
+### Root cause we were chasing
+
+The `<MobileRedirect>` (round 23) was bouncing EVERY `/dashboard/*`
+URL to `/crew` on phones, not just `/dashboard` root. Every form's
+post-save redirect → `/dashboard/clients/{id}`, every picker button
+→ `/dashboard/clients`, every search result → `/dashboard/quotes/{id}`
+all got swallowed and the user ended up on /crew home with no
+confirmation. So saves *looked* like they didn't happen, picker
+taps *looked* like crashes, and search results *looked* like 404s.
+
+The fix has three parts:
+
+1. **MobileRedirect now only fires on `/dashboard` root.** Detail
+   subroutes are left alone — if you arrive there deliberately
+   (search, deep link, email), you see the page.
+2. **Every save action redirects to a `/crew/*` path with a `?saved=…`
+   flag.** A new `<CrewToast>` component, mounted in the crew
+   layout, reads that flag and shows a green confirmation banner
+   that auto-dismisses after 3.5s.  Errors flow through `?error=…`
+   the same way and render in red.
+3. **Built crew-app destinations for every detail page that the
+   forms / search / pickers want to land on:**
+   `/crew/clients/[id]`, `/crew/quotes/[id]`, `/crew/projects/[id]`.
+   Plus three picker pages: `/crew/pick/client`, `/crew/pick/project`,
+   `/crew/pick/team`. These match the Jobber screenshot UX —
+   tappable rows that send the user back to the originating form
+   with `?client_id=…` (or `project_id` / `user_id`) appended.
+
+### What's now functional
+
+- **New Client** — saves to DB, redirects to `/crew/clients/{id}`,
+  toast confirms. Fails gracefully when phone+email are both empty.
+- **New Request** — saves a `leads` row, redirects to /crew, toast
+  confirms. Image upload / line items / schedule rows now show a
+  clearly-labeled "Coming soon" hint instead of crashing on tap.
+- **New Task** — saves to `tasks`. Client + Team pickers work.
+  Native `<input type="date">` for due date.
+- **New Expense** — saves to `expenses`. Linked-job picker works.
+  Reimburse-to + Attach-receipt show "Coming soon".
+- **New Invoice** — Billed-to (client picker) works; rest of the
+  invoice form is "Coming soon" because the office desktop app is
+  the only place that actually sends invoices today. The submit
+  button surfaces a friendly toast explaining that.
+- **New Quote** — template picker stays on the form; tapping a
+  template now toasts "open desktop to send" rather than 404.
+- **New Job** — Client + Team pickers work. Title + Instructions
+  capture but actual project creation is desktop-only for now and
+  the save toast says so.
+
+### Per-detail-page reach
+
+- `/crew/clients/[id]` — name + status, Call/Email/Map quick-tap
+  pills, address with directions tap-target, recent jobs list,
+  recent quotes list. All sub-rows link into other crew pages.
+- `/crew/quotes/[id]` — quote header (status pill, project, client),
+  line items list, dark-navy total bar.
+- `/crew/projects/[id]` — status, address (tap → directions), revenue,
+  list of related visits (each links to /crew/visits/{id}).
+
+### Search routing
+
+`app/crew/search/page.tsx` row hrefs flipped:
+- client → `/crew/clients/{id}`  (was /dashboard/clients/{id})
+- project → `/crew/projects/{id}` (was /crew/visits?project=…)
+- quote → `/crew/quotes/{id}`    (was /dashboard/quotes/{id})
+
+No more 404 on tap.
+
+### Schedule timezone fix
+
+The schedule was treating "today" as UTC, so a crew member checking
+the page at 8 PM PT saw tomorrow's date highlighted (and visits for
+"today" filtered to a different day). Now every date math goes
+through `Intl.DateTimeFormat("en-CA", { timeZone:
+"America/Los_Angeles" })`:
+
+- `tzDateIso(date)` — YYYY-MM-DD evaluated in PT
+- `tzDow(date)` — 0..6 day-of-week in PT
+- `addDays(iso, n)` — pure string math, no Date round-trip
+- `weekStartIsoFromSelected(iso)` — Saturday-anchored week start
+  for the selected ISO date
+
+The week-strip's "today" highlight uses the same Intl call on the
+client. Visits on the boundary of midnight PT no longer flicker
+between days.
+
+### Team picker actually loads people
+
+`/crew/pick/team` queries `profiles` where `role IN ('crew','admin')`,
+ordered by full_name then email. Each row renders as initials avatar
++ name + role. Tapping appends `?user_id=…` to the originating form.
+This is what the user reported as "team members empty everywhere"
+— there was no real picker before, just a placeholder row.
+
+### Files changed this round
+
+- **New:**
+  `app/crew/clients/[id]/page.tsx`
+  `app/crew/quotes/[id]/page.tsx`
+  `app/crew/projects/[id]/page.tsx`
+  `app/crew/pick/client/page.tsx`
+  `app/crew/pick/project/page.tsx`
+  `app/crew/pick/team/page.tsx`
+  `app/crew/toast.tsx`
+  `app/crew/create/shared.tsx` (ClientPickerRow / ProjectPickerRow /
+    TeamPickerRow / NotYetAvailable)
+- **Rewritten:**
+  `app/crew/create/actions.ts` (all save redirects → /crew/*)
+  `app/crew/create/request/page.tsx`
+  `app/crew/create/task/page.tsx`
+  `app/crew/create/expense/page.tsx`
+  `app/crew/create/invoice/page.tsx`
+  `app/crew/create/quote/page.tsx`
+  `app/crew/create/job/page.tsx`
+- **Modified:**
+  `app/crew/layout.tsx` (mounts CrewToast)
+  `app/crew/schedule/page.tsx` (PT timezone math)
+  `app/crew/schedule/week-strip.tsx` (PT today highlight)
+  `app/crew/search/page.tsx` (links flipped to /crew/*)
+  `components/mobile-redirect.tsx` (only fires on /dashboard root)
+
+### Known gaps
+
+- The "Coming soon" sections (image upload, line items on Request,
+  full Invoice flow, Job line items + scheduling) need real
+  implementations. They no longer crash, just don't do anything.
+- /crew detail pages are read-only summaries. Edits still happen on
+  desktop. Add edit affordances when there's appetite.
+- No /crew/clients listing yet — search is the only way to find a
+  client. Listing is a small follow-up.
+- TeamPicker is single-select. Multi-select (for assigning crews
+  to a single visit) needs a different shape.
+
+---
+
 ## ☕ WAKE-UP NOTE — round 25 (2026-04-26, contact picker on New Client)
 
 `tsc --noEmit` passes clean. **No new SQL migrations.**

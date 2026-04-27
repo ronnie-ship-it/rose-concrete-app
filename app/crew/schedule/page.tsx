@@ -12,17 +12,56 @@ export const metadata = { title: "Schedule — Rose Concrete" };
 
 type SearchParams = Promise<{ d?: string; view?: string }>;
 
-function weekStartIso(d: Date): string {
-  // Saturday-anchored week (matches the Apr 24 2026 screenshots:
-  // S 19, M 20, T 21, W 22, T 23, F 24, S 25 — so the week starts on
-  // Saturday the 19th).
-  const day = d.getDay(); // 0=Sun..6=Sat
-  const start = new Date(d);
-  const offset = day === 6 ? 0 : day + 1;
-  start.setDate(d.getDate() - offset);
-  start.setHours(12, 0, 0, 0);
-  return start.toISOString().slice(0, 10);
+// Rose Concrete operates in San Diego — every visit on the calendar
+// is stamped in PT (PDT/PST). The Vercel server runs in UTC so we
+// can't trust `new Date()`'s local methods directly; instead format
+// every "today / selected day" through the SD timezone.
+const TZ = "America/Los_Angeles";
+
+/** Returns YYYY-MM-DD for `d` evaluated in the SD timezone. */
+function tzDateIso(d: Date): string {
+  // en-CA always emits ISO-shape (YYYY-MM-DD) regardless of locale,
+  // so we don't have to slice/parse.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 }
+
+/** Day-of-week in the SD timezone — 0=Sun..6=Sat. */
+function tzDow(d: Date): number {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    weekday: "short",
+  }).format(d);
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
+}
+
+/** Add `days` calendar days to an ISO date string (YYYY-MM-DD).
+ *  Done as a plain string-math operation so we never round-trip
+ *  through Date and pick up a timezone shift. */
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Saturday-anchored week start for the given ISO date (YYYY-MM-DD).
+ *  Matches the Jobber screenshot week strip (S 19 … S 25). */
+function weekStartIsoFromSelected(selectedIso: string): string {
+  const [y, m, d] = selectedIso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12));
+  // Day-of-week of the SELECTED date in SD time. We constructed `dt`
+  // at noon UTC which is 4-5 AM SD — same weekday no matter the DST.
+  const dow = tzDow(dt);
+  // Days back to Saturday (Sat=6). If today IS Saturday, offset=0.
+  const offset = dow === 6 ? 0 : dow + 1;
+  return addDays(selectedIso, -offset);
+}
+
 function normalizeView(raw: string | undefined): ScheduleView {
   if (raw === "day" || raw === "list" || raw === "map") return raw;
   return "list";
@@ -75,12 +114,25 @@ export default async function CrewSchedule({
   const sp = await searchParams;
 
   const today = new Date();
-  const selectedIso = sp.d ?? today.toISOString().slice(0, 10);
+  // "Today" + selected day are computed in San Diego time so the
+  // schedule lines up with crew expectations regardless of where
+  // the Vercel edge runs.
+  const todayIso = tzDateIso(today);
+  const selectedIso = sp.d ?? todayIso;
   const view = normalizeView(sp.view);
-  const weekStart = weekStartIso(new Date(selectedIso + "T12:00:00"));
-  const weekStartDate = new Date(weekStart + "T00:00:00");
-  const weekEnd = new Date(weekStartDate);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  const weekStart = weekStartIsoFromSelected(selectedIso);
+  const weekEndIsoExclusive = addDays(weekStart, 7);
+  // Translate the week boundaries back to UTC for the SQL query.
+  // Midnight SD = 07:00 UTC during PDT, 08:00 UTC during PST. We use
+  // a wide-but-correct boundary by parsing the ISO date as UTC and
+  // adjusting -8 hours (PST offset, the LATER of PDT/PST). That way
+  // we never miss a visit at the day's start because of DST drift —
+  // we may pull a couple of extra hours of the prior day, which is
+  // harmless because we filter again client-side by tzDateIso later.
+  const weekStartUtc = new Date(`${weekStart}T08:00:00.000Z`);
+  const weekEndUtc = new Date(`${weekEndIsoExclusive}T08:00:00.000Z`);
+  const weekStartDate = weekStartUtc;
+  const weekEnd = weekEndUtc;
 
   // Pull every visit in the week, joined to project/client AND visit_assignments.
   // We display ALL employees who have visits this week as columns.
@@ -98,16 +150,18 @@ export default async function CrewSchedule({
     .lt("scheduled_for", weekEnd.toISOString())
     .order("scheduled_for", { ascending: true });
 
-  // Day-count badges for the week strip.
+  // Day-count badges for the week strip.  Use the SD timezone so a
+  // visit scheduled for Friday at 9 PM doesn't roll over into the
+  // Saturday count just because UTC shifted.
   const counts: Record<string, number> = {};
   for (const v of weekVisits ?? []) {
-    const iso = new Date(v.scheduled_for).toISOString().slice(0, 10);
+    const iso = tzDateIso(new Date(v.scheduled_for));
     counts[iso] = (counts[iso] ?? 0) + 1;
   }
 
-  // Filter to selected day + group by employee.
+  // Filter to selected day + group by employee — same TZ handling.
   const selectedDay = (weekVisits ?? []).filter(
-    (v) => new Date(v.scheduled_for).toISOString().slice(0, 10) === selectedIso,
+    (v) => tzDateIso(new Date(v.scheduled_for)) === selectedIso,
   );
 
   const columns = groupByEmployee(selectedDay);

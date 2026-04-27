@@ -29,7 +29,15 @@ export function WeekStrip({
 }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const today = new Date().toISOString().slice(0, 10);
+  // Today in San Diego time — the browser's TZ usually matches, but
+  // forcing PT keeps the "today" circle accurate even if a crew
+  // member's phone is set to a different zone.
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   const days: Array<{ iso: string; day: number; label: string }> = [];
   const base = new Date(start + "T12:00:00");

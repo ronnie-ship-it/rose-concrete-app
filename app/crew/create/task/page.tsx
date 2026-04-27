@@ -1,29 +1,66 @@
 import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { createTaskFromCrewAction } from "../actions";
 import {
   CrewCreateChrome,
   FieldInput,
   FieldTextarea,
   SectionLabel,
-  SectionRow,
-  PlusButton,
   SectionSpacer,
 } from "../chrome";
+import { ClientPickerRow, TeamPickerRow } from "../shared";
 
 export const metadata = { title: "New task — Rose Concrete" };
+
+type SearchParams = Promise<{
+  client_id?: string;
+  user_id?: string;
+  error?: string;
+}>;
 
 /**
  * Crew "New task" — Jobber-mobile parity.
  *
- *   - Title + Description inputs (white cards, no leading icon)
- *   - 👤 Client + green +
- *   - "Schedule" section
- *     - 📅 Date / Unscheduled  (right-chevron-style row)
- *   - 👥 Team / Unassigned + arrow →
- *   - Bottom: green "Save"
+ *   - Title + Description
+ *   - Client picker (taps through to /crew/pick/client?ret=…)
+ *   - Date picker (native HTML date input)
+ *   - Team picker (taps through to /crew/pick/team?ret=…)
+ *   - Save → tasks.insert + redirect to /crew?saved=task
  */
-export default async function CrewNewTask() {
+export default async function CrewNewTask({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   await requireRole(["crew", "admin", "office"]);
+  const sp = await searchParams;
+  const clientId = sp.client_id ?? null;
+  const userId = sp.user_id ?? null;
+  const supabase = await createClient();
+
+  let client: { id: string; name: string } | null = null;
+  if (clientId) {
+    const { data } = await supabase
+      .from("clients")
+      .select("id, name")
+      .eq("id", clientId)
+      .maybeSingle();
+    client = data ?? null;
+  }
+  let teamMember: { id: string; name: string } | null = null;
+  if (userId) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data) {
+      teamMember = {
+        id: data.id,
+        name: (data.full_name as string | null) ?? (data.email as string).split("@")[0],
+      };
+    }
+  }
 
   return (
     <CrewCreateChrome
@@ -31,68 +68,43 @@ export default async function CrewNewTask() {
       saveLabel="Save"
       formAction={createTaskFromCrewAction}
     >
+      {sp.error && (
+        <p className="mx-4 mt-4 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+          {sp.error}
+        </p>
+      )}
+
       <div className="pt-4" />
       <FieldInput name="title" placeholder="Title" required />
       <FieldTextarea name="description" placeholder="Description" rows={3} />
 
       <SectionSpacer />
 
-      <SectionRow
-        icon={
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 21c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-          </svg>
-        }
-        label="Client"
-        trailing={<PlusButton href="/dashboard/clients" />}
-      />
+      <ClientPickerRow ret="/crew/create/task" prefilled={client} />
 
       <SectionSpacer />
 
       <SectionLabel>Schedule</SectionLabel>
       <div className="px-4 py-2">
-        <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-3 py-3 dark:border-neutral-700 dark:bg-neutral-800">
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-neutral-500" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="5" width="18" height="16" rx="2" />
-              <path d="M3 9h18M8 3v4M16 3v4" />
-            </svg>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Date
-              </p>
-              <input
-                name="due_date"
-                type="date"
-                placeholder="Unscheduled"
-                className="bg-transparent text-sm text-[#1a2332] placeholder:text-neutral-400 focus:outline-none dark:text-white"
-              />
-            </div>
+        <div className="flex items-center gap-3 rounded-md border border-neutral-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-neutral-500" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M3 9h18M8 3v4M16 3v4" />
+          </svg>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Due date
+            </p>
+            <input
+              name="due_date"
+              type="date"
+              className="block w-full bg-transparent text-sm text-[#1a2332] placeholder:text-neutral-400 focus:outline-none dark:text-white"
+            />
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#1a2332] dark:text-white" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="9" cy="8" r="3" />
-            <circle cx="17" cy="9" r="2.5" />
-            <path d="M3 21c0-2.5 2.7-4.5 6-4.5s6 2 6 4.5M14 21c0-2 2-3.5 4.5-3.5s4.5 1.5 4.5 3.5" />
-          </svg>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-[#1a2332] dark:text-white">
-              Team
-            </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Unassigned
-            </p>
-          </div>
-          <svg viewBox="0 0 24 24" className="h-4 w-4 text-neutral-400" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </div>
-      </div>
+      <TeamPickerRow ret="/crew/create/task" prefilled={teamMember} />
     </CrewCreateChrome>
   );
 }

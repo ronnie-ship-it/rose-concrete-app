@@ -97,7 +97,7 @@ export default async function CrewSearchPage({
       subtitle: (c.city as string | null) ?? null,
       date: (c.updated_at as string | null) ?? null,
       status: null,
-      href: `/dashboard/clients/${c.id}`,
+      href: `/crew/clients/${c.id}`,
     });
   }
   for (const p of projectRes.data ?? []) {
@@ -112,7 +112,7 @@ export default async function CrewSearchPage({
           .join(" · ") || null,
       date: (p.updated_at as string | null) ?? null,
       status: p.status as string | null,
-      href: `/crew/visits?project=${p.id}`,
+      href: `/crew/projects/${p.id}`,
     });
   }
   for (const q of quoteRes.data ?? []) {
@@ -130,7 +130,7 @@ export default async function CrewSearchPage({
         [client?.name, project?.name].filter(Boolean).join(" · ") || null,
       date: (q.issued_at as string | null) ?? null,
       status: q.status as string | null,
-      href: `/dashboard/quotes/${q.id}`,
+      href: `/crew/quotes/${q.id}`,
     });
   }
   for (const l of leadRes.data ?? []) {

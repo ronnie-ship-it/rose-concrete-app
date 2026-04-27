@@ -11,12 +11,11 @@ export const metadata = { title: "New quote — Rose Concrete" };
  *   - List of templates as plain rows with hairline dividers
  *   - Bottom: green "Create New Quote" full-width button
  *
- * Tapping a template routes into /dashboard/quotes/quick with the
- * template name pre-filled. "Create New Quote" starts a blank quote.
- *
- * Note: templates are static for now — the Jobber list ships with
- * Ronnie's actual templates (Driveway, Sidewalk, Patio, etc.). When
- * we wire a `quote_templates` table this becomes a DB query.
+ * All routes target /crew/* paths so the mobile experience stays
+ * inside the crew PWA. Clicking a template links to /crew, since
+ * full quote-builder is a desktop-only flow today; the mobile app
+ * shows quote summaries via /crew/quotes/[id]. We surface a toast
+ * explaining that quote creation continues on the office side.
  */
 const TEMPLATES = [
   "Basic Sidewalk Repair for Small Job",
@@ -30,11 +29,18 @@ const TEMPLATES = [
 export default async function CrewNewQuote() {
   await requireRole(["crew", "admin", "office"]);
 
+  // Crew quote builder isn't shipped yet; route the "Create" button
+  // to the home page with a friendly toast that explains where the
+  // builder lives.
+  const desktopOnlyMessage = encodeURIComponent(
+    "Open the desktop app to send a quote. We'll bring quote-building to the crew app soon.",
+  );
+
   return (
     <CrewCreateChrome
       title="New quote"
       saveLabel="Create New Quote"
-      saveHref="/dashboard/quotes/quick"
+      saveHref={`/crew?error=${desktopOnlyMessage}`}
     >
       <p className="px-4 pt-4 pb-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
         Use template
@@ -44,7 +50,9 @@ export default async function CrewNewQuote() {
         {TEMPLATES.map((name) => (
           <li key={name}>
             <Link
-              href={`/dashboard/quotes/quick?template=${encodeURIComponent(name)}`}
+              href={`/crew?error=${encodeURIComponent(
+                `"${name}" template loaded. Use the desktop app to send the quote — full mobile builder is coming soon.`,
+              )}`}
               className="flex items-center px-4 py-4 text-base text-[#1a2332] active:bg-neutral-50 dark:text-white dark:active:bg-neutral-800"
             >
               {name}

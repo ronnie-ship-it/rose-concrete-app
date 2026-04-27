@@ -4,10 +4,18 @@
  * Server actions used by the Jobber-mobile-style "New X" forms in the
  * crew app.
  *
+ * All redirects target /crew/* paths so the mobile experience stays
+ * inside the crew PWA. After a successful save, we redirect to a
+ * crew-friendly destination (the new detail page when one exists,
+ * otherwise back to /crew home) with a `?saved=<kind>` flag that
+ * the layout-mounted CrewToast picks up and renders as a brief
+ * green confirmation banner.
+ *
  * Schemas to mind:
- *   - clients(name, phone, email, address, source) — see migration 001
- *   - leads(source[NOT NULL], contact_name, notes, status, captured_at,
- *           service_address, service_type) — migrations 001 + 014/018
+ *   - clients(name, phone, email, address, city, state, postal_code,
+ *             source) — see migration 001
+ *   - leads(source[NOT NULL], contact_name, notes, status,
+ *           captured_at, service_address, service_type) — 001 + 014/018
  *   - tasks(title, body, status, client_id, project_id, due_at,
  *           source, source_id) — migration 013
  *   - expenses(project_id, vendor, category, amount, note, receipt_url,
@@ -16,6 +24,18 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+
+/**
+ * Build a redirect URL that lands the user back somewhere sensible
+ * with a success or error toast.
+ */
+function ok(path: string, kind: string): string {
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}saved=${encodeURIComponent(kind)}`;
+}
+function fail(formPath: string, message: string): string {
+  return `${formPath}?error=${encodeURIComponent(message)}`;
+}
 
 // ─────────────────────────── Clients ───────────────────────────
 
@@ -32,11 +52,22 @@ export async function createClientFromCrewAction(formData: FormData): Promise<vo
   const postalCode = String(formData.get("postal_code") ?? "").trim() || null;
   const leadSource = String(formData.get("lead_source") ?? "").trim() || null;
 
-  // Name preference: company → first+last → just first
+  // Name preference: company → first+last → just first.
   const name =
     company ||
     [firstName, lastName].filter(Boolean).join(" ").trim() ||
     "(Unnamed client)";
+
+  // Need at least a phone or email so the office can reach them. Match
+  // the office quick-create rule so the data shape stays consistent.
+  if (!phone && !email) {
+    redirect(
+      fail(
+        "/crew/create/client",
+        "Please add a phone number or email so we can reach the client.",
+      ),
+    );
+  }
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -53,10 +84,10 @@ export async function createClientFromCrewAction(formData: FormData): Promise<vo
     })
     .select("id")
     .single();
-  if (error) {
-    redirect(`/crew/create/client?error=${encodeURIComponent(error.message)}`);
+  if (error || !data) {
+    redirect(fail("/crew/create/client", error?.message ?? "Save failed"));
   }
-  redirect(`/dashboard/clients/${data!.id}`);
+  redirect(ok(`/crew/clients/${data.id}`, "client"));
 }
 
 // ─────────────────────────── Tasks ───────────────────────────
@@ -69,7 +100,7 @@ export async function createTaskFromCrewAction(formData: FormData): Promise<void
   const dueDate = String(formData.get("due_date") ?? "").trim();
 
   if (!title) {
-    redirect("/crew/create/task?error=Title%20is%20required");
+    redirect(fail("/crew/create/task", "Title is required"));
   }
 
   const supabase = createServiceRoleClient();
@@ -82,9 +113,9 @@ export async function createTaskFromCrewAction(formData: FormData): Promise<void
     source: "crew_app",
   });
   if (error) {
-    redirect(`/crew/create/task?error=${encodeURIComponent(error.message)}`);
+    redirect(fail("/crew/create/task", error.message));
   }
-  redirect("/dashboard/tasks");
+  redirect(ok("/crew", "task"));
 }
 
 // ─────────────────────────── Expenses ───────────────────────────
@@ -98,10 +129,11 @@ export async function createExpenseFromCrewAction(formData: FormData): Promise<v
     Number(String(formData.get("total") ?? "0").replace(/[^0-9.-]/g, "")) || 0;
   const projectId = String(formData.get("project_id") ?? "").trim() || null;
 
-  if (!title || amount <= 0) {
-    redirect(
-      "/crew/create/expense?error=Title%20and%20a%20positive%20total%20are%20required",
-    );
+  if (!title) {
+    redirect(fail("/crew/create/expense", "Title is required"));
+  }
+  if (amount <= 0) {
+    redirect(fail("/crew/create/expense", "Total must be greater than $0"));
   }
 
   const supabase = createServiceRoleClient();
@@ -116,9 +148,9 @@ export async function createExpenseFromCrewAction(formData: FormData): Promise<v
     category: "other",
   });
   if (error) {
-    redirect(`/crew/create/expense?error=${encodeURIComponent(error.message)}`);
+    redirect(fail("/crew/create/expense", error.message));
   }
-  redirect("/dashboard/expenses");
+  redirect(ok("/crew", "expense"));
 }
 
 // ─────────────────────────── Requests (lead intake) ───────────────────────────
@@ -130,7 +162,7 @@ export async function createRequestFromCrewAction(formData: FormData): Promise<v
   const clientId = String(formData.get("client_id") ?? "").trim() || null;
 
   if (!title) {
-    redirect("/crew/create/request?error=Title%20is%20required");
+    redirect(fail("/crew/create/request", "Title is required"));
   }
 
   const supabase = createServiceRoleClient();
@@ -143,7 +175,7 @@ export async function createRequestFromCrewAction(formData: FormData): Promise<v
     client_id: clientId,
   });
   if (error) {
-    redirect(`/crew/create/request?error=${encodeURIComponent(error.message)}`);
+    redirect(fail("/crew/create/request", error.message));
   }
-  redirect("/dashboard/requests");
+  redirect(ok("/crew", "request"));
 }
