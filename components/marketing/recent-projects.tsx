@@ -1,36 +1,53 @@
 import { ImageSlot } from "@/components/marketing/image-slot";
 import { pickProjects } from "@/lib/marketing/projects";
-import { getRecentProjectsForGallery } from "@/lib/marketing/project-photos";
+import {
+  getRecentProjectsForGallery,
+  getRecentProjectsForService,
+} from "@/lib/marketing/project-photos";
 import { serviceLabel } from "@/lib/service-types";
 import { cn } from "@/lib/utils";
 
 /**
  * <RecentProjects /> — recent jobs grid.
  *
- * Renders real project photos when any exist (queries
- * `marketing_project_media` view via `getRecentProjectsForGallery`).
- * Falls back to the gradient `<ImageSlot>` placeholders from
- * `lib/marketing/projects.ts` when the project_media table is empty —
- * so a fresh install still shows a visually-finished section, not an
- * empty band.
+ * Two query modes:
  *
- * Server component — fetches at request time. Cards link to nothing
- * yet (no project-detail public route); when there is one, the cards
- * become links to /projects/<slug>.
+ *   (default, no `serviceTypes` prop) — calls `getRecentProjectsForGallery`,
+ *   which returns the most-recent N across ALL service types. Used by
+ *   the home page where the gallery is intentionally cross-service.
+ *
+ *   (with `serviceTypes`) — calls `getRecentProjectsForService(serviceTypes)`,
+ *   filtered to the page's service. Used by every `/services/<slug>`
+ *   page so each gallery shows only its own work. Accepts a single
+ *   string or an array (combined service pages like
+ *   `walkways-sidewalks` pass `['walkway', 'sidewalk', 'safe_sidewalks_program']`).
+ *
+ * Falls back to gradient `<ImageSlot>` placeholders from
+ * `lib/marketing/projects.ts` when the underlying query returns
+ * zero rows — so a fresh install (or a service with no Final
+ * photos yet) still shows a visually-finished section.
+ *
+ * Server component — fetches at request time.
  */
 
 export async function RecentProjects({
   heading = "Recent work in San Diego County",
   sub = "Six recent jobs across the county. Photos straight from the project record.",
   count = 6,
+  serviceTypes,
   className,
 }: {
   heading?: string;
   sub?: string;
   count?: number;
+  /** When provided, the gallery filters to only these service types.
+   *  Omitting the prop keeps the all-services homepage behavior. */
+  serviceTypes?: string | readonly string[];
   className?: string;
 }) {
-  const real = await getRecentProjectsForGallery(count);
+  const real = serviceTypes
+    ? await getRecentProjectsForService(serviceTypes, { limit: count })
+    : await getRecentProjectsForGallery(count);
   const usingPlaceholders = real.length === 0;
 
   return (

@@ -62,6 +62,17 @@ export type Service = {
   faqs: readonly Faq[];
   /** Pre-fills the LeadForm dropdown. */
   serviceTypeForForm: ServiceType;
+  /**
+   * Service-type values the "Recent work" gallery on this page should
+   * filter by. Optional — when omitted, the gallery filters on the
+   * single value `[serviceTypeForForm]`.
+   *
+   * Used for combined service pages where one slug covers multiple
+   * enum values (e.g. `walkways-sidewalks` covers walkway + sidewalk +
+   * safe_sidewalks_program). Without this, those pages would only
+   * surface one of the three.
+   */
+  serviceTypesForGallery?: readonly ServiceType[];
 };
 
 // ─── Driveways ──────────────────────────────────────────────────────────
@@ -317,6 +328,11 @@ const walkways: Service = {
     },
   ],
   serviceTypeForForm: "sidewalk",
+  // The walkways-sidewalks page covers three flavors of work — make
+  // sure the gallery surfaces all three, not just `sidewalk`-tagged
+  // projects. Walkway showcases and Safe Sidewalks Program work both
+  // belong here.
+  serviceTypesForGallery: ["walkway", "sidewalk", "safe_sidewalks_program"],
 };
 
 // ─── Decorative Concrete ────────────────────────────────────────────────

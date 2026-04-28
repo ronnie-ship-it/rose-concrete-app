@@ -228,11 +228,16 @@ export default async function ServicePage({
         />
       </Section>
 
-      {/* Recent projects */}
+      {/* Recent projects — filtered to this service's enum value(s).
+          Combined pages like walkways-sidewalks pass an array via
+          `serviceTypesForGallery` so all flavors of the work surface. */}
       <Section tone="cream">
         <RecentProjects
           heading={`Recent ${service.name.toLowerCase()} work`}
-          sub="Six recent jobs across San Diego County. Photos coming."
+          sub={`Real ${service.name.toLowerCase()} work poured by Ronnie's crew across San Diego County.`}
+          serviceTypes={
+            service.serviceTypesForGallery ?? [service.serviceTypeForForm]
+          }
         />
       </Section>
 

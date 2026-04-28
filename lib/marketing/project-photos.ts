@@ -250,6 +250,63 @@ export async function getRecentProjectsForGallery(
 }
 
 /**
+ * Recent-project gallery, filtered to one or more service types.
+ *
+ * Same shape as `getRecentProjectsForGallery` (overshoot, dedupe by
+ * project_id, ordering) but adds a `service_type IN (...)` filter so
+ * `/services/<slug>` pages can render only their own work.
+ *
+ * Empty `serviceTypes` returns []. We deliberately do NOT fall back to
+ * the all-services query — that's exactly the bug we're fixing here.
+ *
+ * Accepts a single string or an array. Use the array form for combined
+ * service pages (e.g. `walkways-sidewalks` covers
+ * walkway + sidewalk + safe_sidewalks_program).
+ */
+export async function getRecentProjectsForService(
+  serviceTypes: string | readonly string[],
+  options: { limit?: number } = {},
+): Promise<MarketingProjectMedia[]> {
+  const limit = Math.max(1, Math.min(20, options.limit ?? 6));
+  const types = Array.isArray(serviceTypes) ? serviceTypes : [serviceTypes];
+  if (types.length === 0) return [];
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("marketing_project_media")
+    .select("*")
+    .eq("is_marketing_eligible", true)
+    .eq("phase", "after")
+    .in("service_type", types)
+    .in("project_status", COMPLETED_OR_ACTIVE)
+    .order("is_hero", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(limit * 3); // overshoot — dedupe by project_id below
+
+  if (error) {
+    if (!isExpectedMissingViewError(error)) {
+      console.error(
+        "[marketing/project-photos] getRecentProjectsForService failed:",
+        error,
+      );
+    }
+    return [];
+  }
+
+  // One photo per project — first (best-sorted) row wins.
+  const seen = new Set<string>();
+  const out: MarketingProjectMedia[] = [];
+  for (const row of (data ?? []) as MarketingProjectMedia[]) {
+    if (seen.has(row.project_id)) continue;
+    seen.add(row.project_id);
+    out.push(row);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/**
  * Recognize the "view doesn't exist" Postgres error so we can stay
  * silent in build logs until migration 033 has been run. Any other
  * error (RLS, connection, etc.) still logs.
