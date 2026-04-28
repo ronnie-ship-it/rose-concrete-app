@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { buttonClassNames } from "@/components/ui/button";
 import { LeadForm } from "@/components/marketing/lead-form";
 import { ImageSlot } from "@/components/marketing/image-slot";
@@ -46,6 +47,22 @@ export type PageHeroProps = {
   imageSlot?: string;
   /** Headline overlay on the fallback ImageSlot. */
   imageHeadline?: string;
+  /**
+   * Optional decorative photo behind the entire hero section. Public-
+   * folder path, e.g. `/images/hero-patio-hillside.jpg`. Defaults
+   * undefined — when unset the hero renders the existing cream gradient
+   * only (the original look on every other page that uses PageHero).
+   *
+   * When set, the photo sits at z-index -20 with `object-cover
+   * object-center`. The existing cream gradient at z-index -10
+   * continues to render on top of it as a translucent wash to protect
+   * text contrast — text colors stay exactly as they are on every
+   * other page.
+   *
+   * Marked `priority` because if a hero photo is set, it's the LCP
+   * candidate. Empty alt because it's purely decorative.
+   */
+  backgroundImage?: string;
   /** @deprecated Legacy prop from earlier hero variant; accepted for
    *  backwards-compat and ignored. Pages that still pass
    *  `placeholderLabel` render the default right column. */
@@ -72,6 +89,7 @@ export function PageHero({
   formProps,
   imageSlot,
   imageHeadline,
+  backgroundImage,
   className,
 }: PageHeroProps) {
   // Default right column = lead form (every page above-the-fold has a form).
@@ -98,13 +116,31 @@ export function PageHero({
         className,
       )}
     >
-      {/* Subtle navy-to-cream gradient backdrop. */}
+      {/* Optional decorative photo behind everything. Sits at -z-20
+          (below the cream wash at -z-10) so the wash protects text
+          contrast against a busy photo. */}
+      {backgroundImage && (
+        <Image
+          src={backgroundImage}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-20 object-cover object-center"
+        />
+      )}
+      {/* Cream wash. When `backgroundImage` is unset, this is just a
+          subtle navy-to-cream gradient (the original look on every
+          other page using PageHero). When `backgroundImage` IS set,
+          the gradient stops shift to translucent rgba so the photo
+          shows through underneath while protecting text contrast. */}
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10"
         style={{
-          background:
-            "linear-gradient(180deg, #f5efe0 0%, #fdfbf5 60%, #ffffff 100%)",
+          background: backgroundImage
+            ? "linear-gradient(180deg, rgba(245,239,224,0.88) 0%, rgba(253,251,245,0.85) 60%, rgba(255,255,255,0.82) 100%)"
+            : "linear-gradient(180deg, #f5efe0 0%, #fdfbf5 60%, #ffffff 100%)",
         }}
       />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">

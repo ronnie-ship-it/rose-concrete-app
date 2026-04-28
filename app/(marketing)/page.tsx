@@ -151,6 +151,7 @@ export default function MarketingHome() {
 function Hero() {
   return (
     <PageHero
+      backgroundImage="/images/hero-patio-hillside.jpg"
       eyebrow="San Diego County · Veteran-Owned · CA License #1130763"
       title={
         <>
