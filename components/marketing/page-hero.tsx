@@ -139,7 +139,7 @@ export function PageHero({
         className="absolute inset-0 -z-10"
         style={{
           background: backgroundImage
-            ? "linear-gradient(180deg, rgba(245,239,224,0.75) 0%, rgba(253,251,245,0.72) 60%, rgba(255,255,255,0.68) 100%)"
+            ? "linear-gradient(180deg, rgba(245,239,224,0.65) 0%, rgba(253,251,245,0.60) 60%, rgba(255,255,255,0.55) 100%)"
             : "linear-gradient(180deg, #f5efe0 0%, #fdfbf5 60%, #ffffff 100%)",
         }}
       />
