@@ -135,7 +135,8 @@ export default function MarketingHome() {
         <SocialProof />
       </Section>
       <ProgramsCallout />
-      <Section tone="cream">
+      {/* id="recent" — footer "Recent Work" link scrolls here. */}
+      <Section id="recent" tone="cream">
         <RecentProjects />
       </Section>
       <ServiceAreaList />

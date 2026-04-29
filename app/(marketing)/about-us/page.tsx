@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+// next/image will be reintroduced when /public/images/ronnie-and-lacy.jpg
+// lands. See the photo placeholder section below for the swap site.
 import { Section, SectionHeader } from "@/components/marketing/section";
 import { TrustBadges } from "@/components/marketing/trust-badges";
 import { ServiceAreaList } from "@/components/marketing/service-area-list";
@@ -18,9 +20,28 @@ import {
   SITE_ORIGIN,
 } from "@/lib/marketing/schema";
 
-const TITLE = "About Rose Concrete — Veteran-Owned San Diego Concrete Contractor";
+/**
+ * About page — warmer, more personal than the original v1.
+ *
+ * Scaffold dropped 2026-04-28 with placeholder TODO comments where
+ * Ronnie needs to write personal narrative. Dev-only amber banners
+ * surface the gaps locally + on Vercel previews; nothing TODO-ish
+ * renders in production (NODE_ENV check below).
+ *
+ * What Ronnie still needs to provide before launch:
+ *   1. Photo at /public/images/ronnie-and-lacy.jpg (or update path below)
+ *   2. Personal narrative paragraph (military, family, why-concrete)
+ *   3. Anything else flagged by TodoBanner below
+ *
+ * Old Duda site About content was NOT preserved in the migration capture
+ * (duda-site-content/pages/ is empty). Best the inventory file gave us
+ * was the meta description: "Learn about our licensed San Diego concrete
+ * team and values."
+ */
+
+const TITLE = "About Rose Concrete — Family-Run, Veteran-Owned Concrete Contractor in San Diego";
 const DESCRIPTION =
-  "Family-run, veteran-owned San Diego concrete contractor. Ronnie Rose pours every job himself with an in-house crew. CA License #1130763, fully insured.";
+  "Rose Concrete and Development is a family-run, veteran-owned concrete contractor in San Diego County. Meet Ronnie Rose, his crew, and how we run jobs.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -37,6 +58,21 @@ export const metadata: Metadata = {
     ],
   },
 };
+
+const IS_PROD = process.env.NODE_ENV === "production";
+
+/** Dev-only banner — invisible in production, loud in dev/preview. */
+function TodoBanner({ children }: { children: React.ReactNode }) {
+  if (IS_PROD) return null;
+  return (
+    <div className="my-3 rounded-md border-l-4 border-amber-400 bg-amber-50 p-3 text-xs text-amber-900">
+      <strong className="block uppercase tracking-wider">
+        TODO (dev only — invisible in production):
+      </strong>
+      <span>{children}</span>
+    </div>
+  );
+}
 
 export default function AboutPage() {
   const schema = jsonLdGraph([
@@ -75,15 +111,16 @@ export default function AboutPage() {
         eyebrow="About · San Diego County"
         title={
           <>
-            Family-run, veteran-owned,{" "}
-            <span className="text-accent-600">in-house crew.</span>
+            Concrete that lasts —{" "}
+            <span className="text-accent-600">poured by the same crew, every job.</span>
           </>
         }
         sub={
           <>
-            Ronnie Rose pours every job himself with the same in-house crew.
-            The person you hire on day one is the person standing in your
-            driveway on pour day.
+            Rose Concrete is family-run and veteran-owned. Ronnie Rose pours
+            every job in the field with the same in-house crew. The person
+            you hire on day one is the person standing in your driveway on
+            pour day.
           </>
         }
         formProps={{
@@ -96,52 +133,146 @@ export default function AboutPage() {
         <TrustBadges />
       </Section>
 
-      {/* The story */}
+      {/* Meet Ronnie + Lacy */}
       <Section tone="cream">
         <SectionHeader
-          eyebrow="Our story"
-          title="Built on showing up"
+          eyebrow="Meet the family"
+          title="Ronnie and Lacy Rose"
         />
-        <div className="prose prose-lg max-w-3xl text-brand-700 [&_p]:mt-4">
-          <p>
-            {BUSINESS_NAME} is a family-run concrete contractor based in San
-            Diego County. Ronnie Rose owns the company and runs every job in
-            the field — same hands from the quote to the final walk-through,
-            same in-house crew on every pour.
-          </p>
-          <p>
-            How we run it: Ronnie does every site visit. Same in-house crew on
-            every job. Fixed-price quotes in writing. Workmanship warranty in
-            writing. If something isn&apos;t right after the pour, you call us,
-            we come back.
-          </p>
+        <div className="grid gap-8 md:grid-cols-[2fr,3fr] md:items-center">
+          {/* Photo slot */}
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 bg-brand-50 shadow-sm">
+            {/*
+              Real photo lives at /public/images/ronnie-and-lacy.jpg.
+              Until then this renders the cream-tinted placeholder
+              gradient with a subtle "PHOTO HERE" label visible only
+              in dev. In production, just a colored block — no broken
+              image, no error.
+            */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(135deg, #f5efe0 0%, #d7dde9 100%)",
+              }}
+            />
+            {!IS_PROD && (
+              <div className="absolute inset-0 flex items-center justify-center text-center text-xs font-mono text-brand-700/70">
+                <div>
+                  <p className="font-bold uppercase tracking-wider">
+                    Photo placeholder
+                  </p>
+                  <p className="mt-1">
+                    Drop file at:
+                    <br />
+                    <code>/public/images/ronnie-and-lacy.jpg</code>
+                  </p>
+                </div>
+              </div>
+            )}
+            {/*
+              When Ronnie drops the photo, swap the placeholder block
+              above with this <Image>:
+
+              <Image
+                src="/images/ronnie-and-lacy.jpg"
+                alt="Ronnie and Lacy Rose"
+                fill
+                sizes="(min-width: 768px) 40vw, 100vw"
+                className="object-cover"
+              />
+            */}
+          </div>
+
+          {/* Narrative */}
+          <div className="prose prose-lg max-w-none text-brand-700 [&_p]:mt-4">
+            <p>
+              Rose Concrete and Development is the work of one family.{" "}
+              {BUSINESS_NAME.split(" and ")[0]} — Ronnie Rose — runs every job
+              in the field with an in-house crew, and his wife Lacy keeps the
+              business side honest.
+            </p>
+
+            <TodoBanner>
+              Need 2-3 sentences from Ronnie about military background (Navy?
+              dates? role?), where he and Lacy met, when they moved to San
+              Diego, and what made him start the company. Keep this honest
+              and specific — generic boilerplate hurts credibility more than
+              it helps. Replace the paragraph below with the real story.
+            </TodoBanner>
+
+            <p>
+              Ronnie spent his early career in the Navy before turning to
+              concrete full-time. The discipline of military planning shaped
+              how he runs jobs today: written quote, written schedule, daily
+              text updates on what&apos;s happening that day, and a clean
+              walk-through with you at the end.
+            </p>
+
+            <TodoBanner>
+              Optional: 1-2 sentences about kids, dogs, where in San Diego
+              they live, what Ronnie does outside of pouring concrete. Skip
+              entirely if you&apos;d rather keep it private — &ldquo;family
+              business&rdquo; sentiment lands either way.
+            </TodoBanner>
+
+            <p>
+              They live in San Diego, raise a family here, and pour concrete
+              for neighbors all over the county.
+            </p>
+          </div>
         </div>
       </Section>
 
-      {/* Veteran-owned */}
+      {/* How we run jobs */}
       <Section tone="white">
         <SectionHeader
-          eyebrow="Veteran-owned"
-          title="What that actually means for your job"
+          eyebrow="How we work"
+          title="Same crew, every job — start to finish"
         />
         <div className="prose prose-lg max-w-3xl text-brand-700 [&_p]:mt-4">
           <p>
-            Veteran-owned is more than a tagline on the truck. It&apos;s the
-            reason our schedule actually holds, why our quotes are in writing,
-            and why our walk-throughs include a real punch list instead of a
-            shrug and a wave goodbye.
+            How we run a job: Ronnie does every site visit himself. The same
+            in-house crew is on every pour. Quotes are fixed-price and in
+            writing. The workmanship warranty is in writing. If something
+            isn&apos;t right after the pour, you call us, we come back.
           </p>
           <p>
             The Navy taught us to plan an op, communicate the plan, and
             execute the plan on time. We run jobs the same way: written
             quote, written schedule, daily texts on what&apos;s happening
-            today and tomorrow, and a clean walk-through with you at the end.
+            today and tomorrow, and a clean walk-through with you at the
+            end.
+          </p>
+        </div>
+      </Section>
+
+      {/* Why concrete (optional section) */}
+      <Section tone="cream">
+        <SectionHeader
+          eyebrow="Why concrete"
+          title="What drew us to flatwork"
+        />
+        <div className="prose prose-lg max-w-3xl text-brand-700 [&_p]:mt-4">
+          <TodoBanner>
+            Optional but valuable: 2-3 sentences about why you specifically
+            chose concrete vs. another trade. Did you grow up around it?
+            Apprentice with someone? See an industry gap? This is where
+            personal craft credibility lives.
+          </TodoBanner>
+          <p>
+            Concrete is a trade where a 30-year slab and a 5-year crack-fest
+            come from the same materials. The difference is in the prep, the
+            rebar, the joint spacing, the cure window. We pour the way you
+            do when the warranty has your own name on it — because ours
+            does.
           </p>
         </div>
       </Section>
 
       {/* Licenses + insurance */}
-      <Section tone="cream">
+      <Section tone="white">
         <SectionHeader
           eyebrow="Credentials"
           title="License, insurance, and bonding"

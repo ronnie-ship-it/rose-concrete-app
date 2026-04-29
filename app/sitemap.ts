@@ -32,6 +32,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_ORIGIN}/service-areas`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_ORIGIN}/about-us`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
     { url: `${SITE_ORIGIN}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${SITE_ORIGIN}/privacy-policy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_ORIGIN}/terms-of-service`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const serviceRoutes: MetadataRoute.Sitemap = CORE_SERVICES.map((s) => ({
