@@ -87,6 +87,11 @@ const Schema = z.object({
       (v) => !v || /^\d{5}(?:-\d{4})?$/.test(v),
       "Please enter a 5-digit ZIP.",
     ),
+  // Optional. Helps Ronnie locate the job before the call. Not required —
+  // many homeowners are uncomfortable handing over a street address before
+  // they've talked to a contractor, so we don't gate the form on it.
+  // Wired through to leads.service_address + clients.address by createLead.
+  address: z.string().trim().max(200).optional().or(z.literal("")),
   service_type: z.string().trim().optional().or(z.literal("")),
   message: z.string().trim().max(2000).optional().or(z.literal("")),
 });
@@ -129,6 +134,7 @@ export function LeadForm({
       phone: String(fd.get("phone") ?? ""),
       email: String(fd.get("email") ?? ""),
       zip: String(fd.get("zip") ?? ""),
+      address: String(fd.get("address") ?? ""),
       service_type: String(fd.get("service_type") ?? ""),
       message: String(fd.get("message") ?? ""),
       // Honeypot field. Submitting it (with anything) is the bot tell.
@@ -342,6 +348,22 @@ export function LeadForm({
             aria-invalid={!!errors.zip}
             placeholder="92101"
             maxLength={10}
+          />
+        </FormRow>
+
+        <FormRow
+          id={`${formId}-address`}
+          label="Project address"
+          error={errors.address}
+          className="sm:col-span-2"
+        >
+          <Input
+            id={`${formId}-address`}
+            name="address"
+            type="text"
+            autoComplete="street-address"
+            aria-invalid={!!errors.address}
+            placeholder="123 Main St (optional)"
           />
         </FormRow>
 

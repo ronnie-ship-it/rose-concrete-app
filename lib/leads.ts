@@ -351,8 +351,16 @@ export async function createLead(
           const adapter = getOpenPhoneAdapter();
           const res = await adapter.sendMessage(
             phone,
+            // ~330 chars — bills as ~3 SMS segments per send. OpenPhone
+            // concatenates on the recipient side, so the lead sees one
+            // message. Mentions Roger (partner) as fallback so urgent
+            // calls still land somewhere when Ronnie is on a job site.
             `Hi ${firstName}, this is Ronnie with Rose Concrete. Got your ` +
-              `request and I'll call you within the hour. — (619) 537-9408`,
+              `request — I'll call as soon as I can. If you need to reach me ` +
+              `sooner, my number is (619) 537-9408. If I'm tied up, feel ` +
+              `free to call my partner Roger at (858) 943-0758. We'll also ` +
+              `have a few other questions to get you a quote — would you ` +
+              `mind sharing some photos of the project?`,
           );
           if (!res.ok) {
             // Surface the OpenPhone error in the dev log so the next
