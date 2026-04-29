@@ -67,6 +67,17 @@ export type LandingPage = {
   faqs: readonly Faq[];
   /** Pre-fills the LeadForm dropdown. */
   serviceTypeForForm: ServiceType;
+  /**
+   * Service-type values the "Recent work" gallery on this page should
+   * filter by. Optional — when omitted, the gallery filters on the
+   * single value `[serviceTypeForForm]`.
+   *
+   * Use the array form for landing pages that cover multiple enum
+   * values (e.g. `safe-sidewalks-program-san-diego` covers
+   * walkway + sidewalk + safe_sidewalks_program). Without this,
+   * those pages would only surface one of the three flavors of work.
+   */
+  serviceTypesForGallery?: readonly ServiceType[];
   /** Bottom-of-page related links. */
   related?: readonly { title: string; href: string; sub?: string }[];
 };
@@ -237,6 +248,9 @@ const safeSidewalks: LandingPage = {
     },
   ],
   serviceTypeForForm: "safe_sidewalks_program",
+  // Surface walkway + sidewalk + safe_sidewalks_program photos in the
+  // Recent work gallery. Single-tag would miss most of the relevant work.
+  serviceTypesForGallery: ["walkway", "sidewalk", "safe_sidewalks_program"],
   related: [
     {
       title: "Sidewalk Repair (private)",
@@ -363,6 +377,8 @@ const sidewalkRepair: LandingPage = {
     },
   ],
   serviceTypeForForm: "sidewalk",
+  // Both walkway and sidewalk projects belong here.
+  serviceTypesForGallery: ["walkway", "sidewalk"],
   related: [
     {
       title: "Safe Sidewalks Program",
@@ -513,6 +529,9 @@ const driveExt: LandingPage = {
     { q: "How does the tie-in work?", a: "We drill 12-inch deep holes into the existing slab edge, epoxy in rebar dowels, then tie those dowels into the new section's rebar grid. The two slabs lock together — they expand and contract as one." },
   ],
   serviceTypeForForm: "driveway_extension",
+  // Driveway photos cover extension work too — until extension-specific
+  // Finals exist, fall back to the broader driveway pool.
+  serviceTypesForGallery: ["driveway_extension", "driveway"],
   related: [
     { title: "Driveway Replacement", href: "/landing/driveway-replacement-san-diego" },
     { title: "RV Pads", href: "/landing/rv-pads-san-diego" },
@@ -581,6 +600,8 @@ const driveApron: LandingPage = {
     { q: "What about the curb?", a: "If the curb itself is broken or sunken, that's a separate scope (and sometimes the city's responsibility, not yours). We'll flag it during the site visit and coordinate as needed." },
   ],
   serviceTypeForForm: "driveway_apron",
+  // Apron-specific Finals are rare — fall back to the broader driveway pool.
+  serviceTypesForGallery: ["driveway_apron", "driveway"],
   related: [
     { title: "Driveway Replacement", href: "/landing/driveway-replacement-san-diego" },
     { title: "Driveways (full service)", href: "/services/driveways" },
@@ -649,6 +670,9 @@ const rvPads: LandingPage = {
     { q: "How long until I can park the rig on it?", a: "14 days after pour. Don't cheat the cure on a heavy vehicle — early loading creates cracks that don't go away." },
   ],
   serviceTypeForForm: "rv_pad",
+  // RV-pad-specific Finals are rare — driveway photos read closely enough
+  // that the gallery still shows real flatwork instead of a placeholder.
+  serviceTypesForGallery: ["rv_pad", "driveway"],
   related: [
     { title: "Driveway Extensions", href: "/landing/driveway-extensions-san-diego" },
     { title: "Driveways (full service)", href: "/services/driveways" },
@@ -927,6 +951,10 @@ const drainage: LandingPage = {
     { q: "Will it really fix the standing water?", a: "Yes — when the design accounts for where the water comes from. We don't pour and pray. We figure out the source first, then design the path of least resistance for the water to leave." },
   ],
   serviceTypeForForm: "drainage",
+  // Drainage-tagged Finals are rare. Patio photos are the closest visual
+  // proxy (drainage work is usually integrated into a patio pour) so the
+  // gallery still shows real flatwork until drainage Finals exist.
+  serviceTypesForGallery: ["drainage", "patio"],
   related: [
     { title: "Patios", href: "/services/patios", sub: "Patio drainage often comes up during a new patio quote." },
     { title: "Driveway Replacement", href: "/landing/driveway-replacement-san-diego" },

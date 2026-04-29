@@ -12,6 +12,7 @@ import { ProcessSteps } from "@/components/marketing/process-steps";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { RelatedLinks } from "@/components/marketing/related-links";
 import { SocialProof } from "@/components/marketing/social-proof";
+import { RecentProjects } from "@/components/marketing/recent-projects";
 import { TypicalCost } from "@/components/marketing/typical-cost";
 import {
   LANDING_PAGES,
@@ -261,6 +262,23 @@ export default async function LandingPageRoute({
       {/* Social proof */}
       <Section tone="white">
         <SocialProof />
+      </Section>
+
+      {/* Recent work — filtered to this landing page's service type(s).
+          Falls back to the placeholder grid when no real Finals match.
+          Multi-type pages (e.g. safe-sidewalks-program covers walkway +
+          sidewalk + safe_sidewalks_program) declare the array via
+          `serviceTypesForGallery` on the LandingPage entry; otherwise the
+          gallery filters on `[serviceTypeForForm]`. */}
+      <Section tone="cream">
+        <RecentProjects
+          heading={`Recent ${page.name.toLowerCase()} work`}
+          sub={`Real ${page.name.toLowerCase()} projects poured by Ronnie's crew across San Diego County.`}
+          count={3}
+          serviceTypes={
+            page.serviceTypesForGallery ?? [page.serviceTypeForForm]
+          }
+        />
       </Section>
 
       {/* Service areas */}
