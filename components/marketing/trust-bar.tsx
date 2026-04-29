@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const SCROLL_HIDE_THRESHOLD = 200;
 
 const SIGNALS = [
-  { icon: "stars", text: "★★★★★ 5.0 Rated" },
+  { icon: "stars", text: "★★★★★ 4.9 Rated" },
   { icon: null, text: "Veteran-Owned" },
   { icon: null, text: "CA License #1130763" },
   { icon: null, text: "Free Quotes" },

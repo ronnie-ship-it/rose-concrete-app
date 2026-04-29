@@ -14,7 +14,7 @@ import {
  *   [Logo]                              [📞 (619) 537-9408]
  *
  * Layout, ≥md:
- *   [Logo]   Services  Service Areas  About  Contact   [📞 (619) 537-9408]
+ *   [Logo]   Services  About  Contact   [📞 (619) 537-9408]
  *
  * Design intent: every visitor on every page can see the phone number
  * without scrolling. The button is the visual heaviest thing on the

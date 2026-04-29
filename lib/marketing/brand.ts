@@ -45,8 +45,8 @@ export const TRUST_SIGNALS = [
   LICENSE,
   "Veteran-Owned",
   "Fully Insured",
-  "In-House Crew (No Subcontracting)",
-  "5-Star Rated",
+  "In-House Crew",
+  "4.9-Star Rated",
 ] as const;
 
 export const SERVICE_AREAS = [
@@ -65,10 +65,15 @@ export const SERVICE_AREAS = [
   "Bonita",
 ] as const;
 
-/** Top-level nav items shown in the marketing header on desktop. */
+/**
+ * Top-level nav items shown in the marketing header on desktop.
+ *
+ * "Service Areas" intentionally lives in the footer only — keeps the
+ * top nav scannable on mobile, and the /service-areas index + 13 city
+ * pages stay live for SEO + direct-URL access.
+ */
 export const PRIMARY_NAV = [
   { label: "Services", href: "/services" },
-  { label: "Service Areas", href: "/service-areas" },
   { label: "About", href: "/about-us" },
   { label: "Contact", href: "/contact" },
 ] as const;

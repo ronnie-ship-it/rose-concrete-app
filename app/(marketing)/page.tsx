@@ -97,7 +97,7 @@ const FEATURED_PROGRAMS = [
 // ─── "Why Rose Concrete" reasons ────────────────────────────────────────
 const WHY_REASONS = [
   {
-    title: "No subcontracting",
+    title: "Same crew every job",
     body: "Ronnie pours every job himself with the same in-house crew. The person you hire is the person who shows up.",
   },
   {
@@ -164,8 +164,7 @@ function Hero() {
       sub={
         <>
           Driveways, patios, sidewalks, and decorative flatwork. Ronnie pours
-          every job himself with an in-house crew — no subcontracting, no
-          surprises. Quotes back same-week.
+          every job himself with the same in-house crew — quotes back same-week.
         </>
       }
       formProps={{

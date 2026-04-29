@@ -253,7 +253,7 @@ export function LeadForm({
           </h2>
           <p className="mt-2 text-sm text-brand-700/80">
             We text you a confirmation immediately. Ronnie calls back{" "}
-            <span className="whitespace-nowrap">within 1 hour — guaranteed.</span>
+            <span className="whitespace-nowrap">as soon as he can.</span>
           </p>
         </header>
       )}

@@ -255,7 +255,7 @@ export default async function ServicePage({
           <SectionHeader
             eyebrow="Free · No obligation · 60 seconds"
             title={`Get Your Free ${service.name} Quote`}
-            sub="Tell us about the job. We text you a confirmation immediately. Ronnie calls back within 1 hour — guaranteed."
+            sub="Tell us about the job. We text you a confirmation immediately. Ronnie calls back as soon as he can."
             className="text-center sm:mx-auto"
           />
           <LeadForm compact defaultServiceType={service.serviceTypeForForm} />

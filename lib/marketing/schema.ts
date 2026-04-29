@@ -62,7 +62,7 @@ export function localBusinessJsonLd() {
       "County. Driveways, patios, sidewalks, decorative concrete, and the " +
       "Safe Sidewalks Program. " +
       LICENSE +
-      ", fully insured, in-house crew (no subcontracting).",
+      ", fully insured, in-house crew.",
     address: {
       "@type": "PostalAddress",
       addressLocality: "San Diego",

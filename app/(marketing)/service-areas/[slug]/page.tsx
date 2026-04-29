@@ -213,7 +213,7 @@ export default async function ServiceAreaPage({
           <SectionHeader
             eyebrow="Free · No obligation · 60 seconds"
             title={`Get Your Free Quote in ${area.city}`}
-            sub="Tell us about the job. We text a confirmation immediately. Ronnie calls back within 1 hour — guaranteed."
+            sub="Tell us about the job. We text a confirmation immediately. Ronnie calls back as soon as he can."
             className="text-center sm:mx-auto"
           />
           <LeadForm compact />

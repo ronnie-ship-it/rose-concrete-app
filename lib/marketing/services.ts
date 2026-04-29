@@ -202,7 +202,7 @@ const patios: Service = {
     },
   ],
   whyUs:
-    "We don't subcontract the finishing — which is the part that makes or breaks a stamped or stained patio. The same crew that grades and forms also pours and finishes, so the look you saw in the sample is the look you get on your slab.",
+    "We do all the finishing in-house — which is the part that makes or breaks a stamped or stained patio. The same crew that grades and forms also pours and finishes, so the look you saw in the sample is the look you get on your slab.",
   typicalCost: {
     heading: "What does a concrete patio cost?",
     rangeSentence:

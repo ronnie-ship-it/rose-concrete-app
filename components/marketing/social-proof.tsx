@@ -34,7 +34,7 @@ export function SocialProof({
     <div className={cn(className)}>
       <header className="mb-6 max-w-3xl sm:mb-8">
         <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
-          ★★★★★ 5.0 Average · Google Reviews
+          ★★★★★ 4.9 Average · Google Reviews
         </p>
         <h2 className="mt-1 text-2xl font-extrabold text-brand-900 sm:text-3xl">
           {heading}

@@ -76,7 +76,7 @@ export default function AboutPage() {
         title={
           <>
             Family-run, veteran-owned,{" "}
-            <span className="text-accent-600">no subcontracting.</span>
+            <span className="text-accent-600">in-house crew.</span>
           </>
         }
         sub={
@@ -110,18 +110,10 @@ export default function AboutPage() {
             same in-house crew on every pour.
           </p>
           <p>
-            The reason we don&apos;t subcontract is simple: subcontracting is
-            where most concrete jobs go sideways. The crew you met during the
-            quote isn&apos;t the crew that shows up. The finish you saw on the
-            sample isn&apos;t the finish you get on your slab. The warranty
-            conversation gets passed around like a hot potato. We don&apos;t
-            run our company that way.
-          </p>
-          <p>
-            The way we run it instead: Ronnie does every site visit. Same
-            in-house crew on every job. Fixed-price quotes in writing.
-            Workmanship warranty in writing. If something isn&apos;t right
-            after the pour, you call us, we come back.
+            How we run it: Ronnie does every site visit. Same in-house crew on
+            every job. Fixed-price quotes in writing. Workmanship warranty in
+            writing. If something isn&apos;t right after the pour, you call us,
+            we come back.
           </p>
         </div>
       </Section>

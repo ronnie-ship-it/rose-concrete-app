@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
  *   [4-bullet trust line]
  *   [sub paragraph]
  *   [primary call CTA]   [secondary scroll-to-form CTA]   <- desktop side-by-side
- *   "Call or text within 1 hour — guaranteed"
+ *   "Call or text — we'll be in touch as soon as we can"
  *
  *   ↓ on mobile this stacks. on desktop a right-column lead form sits beside.
  *
@@ -78,7 +78,7 @@ const TRUST_BULLETS = [
   "CA License #1130763",
   "Veteran-Owned",
   "Fully Insured",
-  "No Subcontracting",
+  "Family-Run",
 ];
 
 export function PageHero({
@@ -199,7 +199,7 @@ export function PageHero({
             </div>
             <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-accent-700">
               <span aria-hidden="true">⚡</span>
-              Call or text within 1 hour — guaranteed.
+              Call or text — we&apos;ll be in touch as soon as we can.
             </p>
           </div>
 
