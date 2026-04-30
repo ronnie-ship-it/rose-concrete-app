@@ -150,6 +150,56 @@ export async function inviteMemberAction(
   }
 }
 
+/**
+ * Admin sets a password for another team member. Uses the
+ * service-role admin API (`auth.admin.updateUserById`) — that's the
+ * only path that lets us touch a user we're not signed in as.
+ *
+ * The new password is logged in `activity_log` with a redacted
+ * payload (no plaintext) so we have an audit trail of who set whose
+ * password without leaking secrets.
+ *
+ * Min length matches Supabase's default (8). If you change
+ * `auth.password_min_length` in Supabase, the API will surface the
+ * new minimum via its own error message.
+ */
+export async function setMemberPasswordAction(
+  memberId: string,
+  password: string,
+): Promise<TeamResult> {
+  try {
+    const actor = await requireRole(["admin"]);
+    if (typeof password !== "string" || password.length < 8) {
+      return {
+        ok: false,
+        error: "Password must be at least 8 characters.",
+      };
+    }
+    const supabase = createServiceRoleClient();
+    const { error } = await supabase.auth.admin.updateUserById(memberId, {
+      password,
+    });
+    if (error) return { ok: false, error: error.message };
+
+    await supabase.from("activity_log").insert({
+      entity_type: "profile",
+      entity_id: memberId,
+      action: "password_set_by_admin",
+      actor_id: actor.id,
+      // Deliberately empty payload — never log plaintext passwords.
+      payload: {},
+    });
+
+    revalidatePath("/dashboard/settings/team");
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to set password.",
+    };
+  }
+}
+
 export async function removeMemberAction(
   memberId: string,
 ): Promise<TeamResult> {

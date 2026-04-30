@@ -2,6 +2,91 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 27 (2026-04-26, password-based login)
+
+`tsc --noEmit` passes clean. **No new SQL migrations** — Supabase
+Auth holds password hashes in `auth.users.encrypted_password` for us.
+
+### Why this round exists
+
+The morning rush was hitting Supabase's magic-link rate limit
+(default 4 per hour). Crew members who couldn't get an email opened
+in time were locked out for 15 minutes. Switching to password as
+the **primary** login path eliminates that friction entirely. Magic
+link stays as a secondary fallback for anyone who hasn't set a
+password yet (or who genuinely prefers the email flow).
+
+### What shipped
+
+- **`/login`** — full rewrite of `app/login/login-form.tsx`. A
+  rounded segmented toggle at the top picks between **Password**
+  (default) and **Magic link**. Email field is hoisted into local
+  state so it survives the toggle. Both panels render their own
+  form + server action. The dev-only "⚡ Dev Login" button stays
+  pinned beneath both modes.
+
+- **`signInWithPasswordAction`** in `app/login/actions.ts` — wraps
+  `supabase.auth.signInWithPassword({email,password})`. On
+  "Invalid login credentials" we map the error to friendly copy
+  ("Email or password is incorrect. Try the magic link if you
+  haven't set a password yet.") so we don't leak whether the email
+  exists. On success the form does
+  `window.location.assign("/dashboard")` for the same cookie-commit
+  reason as `devLogin` — soft router pushes race the Set-Cookie.
+
+- **`/crew/more/password`** — new self-service password page reachable
+  from the crew More menu. Wraps `app/crew/more/password/form.tsx`
+  (client) which calls `changePasswordAction` (server) which does
+  `supabase.auth.updateUser({password})`. Two fields (new + confirm),
+  Show/Hide toggle on each, 8-char minimum. Success surfaces inline
+  ("Password updated. Use the Password tab next time…") then the
+  user taps Done to return to More.
+
+- **More menu** — added a `Change password` row right under
+  Preferences in the Account section (lock icon).
+
+- **Admin set-password** — new `setMemberPasswordAction` in
+  `app/dashboard/settings/team/actions.ts` calls
+  `supabase.auth.admin.updateUserById(memberId, {password})`. Uses
+  the service-role client since we're operating on a user we're not
+  signed in as. Logs a `password_set_by_admin` event in
+  `activity_log` with an EMPTY payload — never log plaintext.
+
+- **TeamTable** — `app/dashboard/settings/team/team-table.tsx`
+  rewritten as a `<Fragment>`-wrapped two-row pattern. Each member
+  row gets a "Set password" button on the right; tapping it expands
+  an inline mini-form below the row with a password input
+  (Show/Hide), Save button, and a "Share with [name] so they can
+  log in via Password" hint. Submitting closes the row and shows a
+  green success banner at the top of the table.
+
+### Files added / modified
+
+- **New:**
+  `app/crew/more/password/page.tsx`
+  `app/crew/more/password/form.tsx`
+  `app/crew/more/password/actions.ts`
+- **Modified:**
+  `app/login/actions.ts` (added signInWithPasswordAction)
+  `app/login/login-form.tsx` (segmented Password/Magic toggle)
+  `app/dashboard/settings/team/actions.ts` (added setMemberPasswordAction)
+  `app/dashboard/settings/team/team-table.tsx` (Set-password mini-form)
+  `app/crew/more/page.tsx` (added Change password row)
+
+### Known gaps
+
+- No "forgot password" reset flow yet. Users who forget can magic-
+  link in and then use `/crew/more/password` to set a new one.
+- No password complexity rules beyond Supabase's default 8-char
+  minimum. We could add a strength meter or upper/digit/symbol
+  checks later.
+- Admin "Set password" copy currently reads "Share with [name]" —
+  good practice would be to email the user instead. We don't have
+  a transactional template wired for this; in the meantime the
+  admin tells the crew member directly.
+
+---
+
 ## ☕ WAKE-UP NOTE — round 26 (2026-04-26, fix every broken crew flow)
 
 `tsc --noEmit` passes clean. **No new SQL migrations.**

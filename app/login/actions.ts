@@ -8,6 +8,56 @@ type SendMagicLinkResult =
   | { ok: true; email: string }
   | { ok: false; error: string };
 
+export type PasswordLoginResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Email + password sign-in. Adds a faster login path for crew members
+ * who would otherwise hit Supabase's magic-link rate limits during the
+ * morning rush. Crew can set their own password from
+ * `/crew/more/password`; admins can set passwords for crew on the
+ * team-management page.
+ *
+ * On success this writes the Supabase session cookie. We deliberately
+ * don't `redirect()` from inside the action — same reason as
+ * `devLogin()` below — and instead let the caller do
+ * `window.location.assign(...)` so the new cookie travels on the
+ * navigation request.
+ */
+export async function signInWithPasswordAction(
+  _prev: PasswordLoginResult | null,
+  formData: FormData,
+): Promise<PasswordLoginResult> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !email.includes("@")) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+  if (!password) {
+    return { ok: false, error: "Enter your password." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    // Supabase returns "Invalid login credentials" for bad email + bad
+    // password and "Email not confirmed" for unverified accounts. Map
+    // both to user-friendly copy that doesn't leak whether the email
+    // exists.
+    const friendly = /invalid login credentials/i.test(error.message)
+      ? "Email or password is incorrect. Try the magic link below if you haven't set a password yet."
+      : error.message;
+    return { ok: false, error: friendly };
+  }
+
+  return { ok: true };
+}
+
 export async function sendMagicLink(
   _prev: SendMagicLinkResult | null,
   formData: FormData
