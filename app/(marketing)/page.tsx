@@ -1,40 +1,44 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { buttonClassNames } from "@/components/ui/button";
 import { LeadForm } from "@/components/marketing/lead-form";
-import { TrustBadges } from "@/components/marketing/trust-badges";
-import { ServiceAreaList } from "@/components/marketing/service-area-list";
 import { FinalCallCta } from "@/components/marketing/final-cta";
-import { PageHero } from "@/components/marketing/page-hero";
 import { SocialProof } from "@/components/marketing/social-proof";
-import { RecentProjects } from "@/components/marketing/recent-projects";
 import { Section } from "@/components/marketing/section";
-import { CORE_SERVICES } from "@/lib/marketing/services";
+import {
+  GOOGLE_REVIEW_URL,
+  PHONE_DISPLAY,
+  PHONE_TEL_HREF,
+} from "@/lib/marketing/brand";
 import { localBusinessJsonLd, SITE_ORIGIN } from "@/lib/marketing/schema";
 
 /**
- * Home page — the apex (sandiegoconcrete.ai) entry point.
+ * Home page — sandiegoconcrete.ai
  *
- * Section order tuned for conversion + SEO:
- *   1. Hero            — headline, sub, two CTAs (call / scroll-to-form)
- *   2. Trust badges    — license, veteran, insured, in-house crew
- *   3. Services grid   — 7 cards linking to /services/<slug>
- *   4. Programs        — Safe Sidewalks Program + 2 high-conversion landing pages
- *   5. Service areas   — 12 cities, each linking to /service-areas/<slug>
- *   6. Lead form       — "Get a Free Quote" + <LeadForm>, anchor #quote
- *   7. Why Rose        — 4 differentiators, short and benefit-led
- *   8. Final CTA band  — phone number, dual CTA
+ * Rebuilt 2026-04-30 to spec (see duda-site-content/WEBSITE_COPY_DRAFT.md).
+ * Section order:
+ *   1. Hero            — headline + single CTA (form lives lower on page)
+ *   2. Trust strip     — reviews · license · veteran-owned
+ *   3. Services grid   — 5 spec tiles + "also: …" line
+ *   4. Why us          — 3 cards (veteran-owned · in-house crew · clean sites)
+ *   5. Owner's note    — short founder paragraph, links to /about-us
+ *   6. Reviews         — kept existing pull-quotes (heading updated)
+ *   7. Lead form       — anchor #quote, target for hero + final-CTA buttons
+ *   8. Final CTA band  — phone + "Get a Free On-Site Estimate"
  *
- * SEO:
- *   - Per-page metadata (title, description, OG, Twitter, canonical)
- *   - LocalBusiness JSON-LD inlined as <script type="application/ld+json">
- *   - All internal links use real <a>/<Link> for crawlability
- *   - One <h1>, h2 per section, h3 per card
+ * Recent Projects gallery is intentionally OFF until the IMAGES.zip from
+ * the old Duda capture lands (`duda-site-content/images/`). When photos
+ * exist in /public/images/, restore the <RecentProjects /> import + the
+ * <Section id="recent" tone="cream"> block between Why-us and Owner's
+ * note. The footer "Recent Work" link still resolves once that section
+ * is back; for now it's hidden until photos exist.
  */
 
 const TITLE =
   "San Diego Concrete Contractor — Driveways, Patios & Sidewalks | Rose Concrete";
 const DESCRIPTION =
-  "Family-run, veteran-owned San Diego concrete contractor. Driveways, patios, sidewalks, and the Safe Sidewalks Program. CA License #1130763, fully insured, in-house crew. Free quotes — call (619) 537-9408.";
+  "Family-run, veteran-owned San Diego concrete contractor. Driveways, patios, sidewalks, slabs, and decorative finishes. CA License #1130763, fully insured, in-house crew. Free quotes — call (619) 537-9408.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -63,54 +67,56 @@ export const metadata: Metadata = {
   },
 };
 
-// ─── Featured landing pages (programs callout) ───────────────────────────
-// Lives inline because the home page is currently the only surface that
-// references it. If a second surface (e.g. a /landing index) needs the
-// same set, lift this into lib/marketing/featured-programs.ts.
-const FEATURED_PROGRAMS = [
+// ─── Service tiles ──────────────────────────────────────────────────────
+// Five tiles per spec. "Slabs & Foundations" doesn't have a dedicated
+// service page yet — points at /services/paving (closest existing
+// match) until a /services/slabs-foundations page ships.
+const SERVICE_TILES = [
   {
-    eyebrow: "Flagship program",
-    name: "Safe Sidewalks Program",
-    href: "/landing/safe-sidewalks-program-san-diego",
+    name: "Driveways",
+    href: "/services/driveways",
     description:
-      "City of San Diego pays a portion. Ronnie handles demo, forms, pour, and inspection — start to finish.",
-    cta: "See if you qualify",
+      "New pours and replacements that hold up to San Diego soil and sun.",
   },
   {
-    eyebrow: "Most-requested job",
-    name: "Driveway Replacement",
-    href: "/landing/driveway-replacement-san-diego",
+    name: "Patios",
+    href: "/services/patios",
     description:
-      "Tear out the cracked slab. Pour a new one in 2–3 days. Park on it inside a week.",
-    cta: "Get a driveway quote",
+      "From simple slabs to stamped, decorative finishes you'll actually use.",
   },
   {
-    eyebrow: "Backyard upgrade",
-    name: "Pool Decks",
-    href: "/landing/pool-decks-san-diego",
+    name: "Walkways & Sidewalks",
+    href: "/services/walkways-sidewalks",
     description:
-      "Slip-resistant, heat-friendly finishes around your pool. Pet-paw-safe and built to handle wet feet for years.",
-    cta: "Plan your pool deck",
+      "New, replaced, or repaired — including the City Safe Sidewalks Program.",
+  },
+  {
+    name: "Slabs & Foundations",
+    href: "/services/paving",
+    description:
+      "Garage pads, ADUs, sheds, footings. Engineered when it matters.",
+  },
+  {
+    name: "Decorative",
+    href: "/services/decorative-concrete",
+    description:
+      "Stamped, exposed aggregate, and finishes that don't look like everyone else's.",
   },
 ] as const;
 
 // ─── "Why Rose Concrete" reasons ────────────────────────────────────────
 const WHY_REASONS = [
   {
-    title: "Same crew every job",
-    body: "Ronnie pours every job himself with the same in-house crew. The person you hire is the person who shows up.",
+    title: "Veteran-owned, family-run.",
+    body: "We built this business the same way we approach everything: show up, do what we said, treat people right.",
   },
   {
-    title: "Veteran-owned",
-    body: "Disciplined, on time, accountable. We treat your project the way the Navy taught us to run an op.",
+    title: "In-house crew.",
+    body: "No subcontracted strangers. The same guys you meet on day one finish the job.",
   },
   {
-    title: "Local to San Diego",
-    body: "We know the city codes, the soils, and the inspectors. Permits don't slow your job down.",
-  },
-  {
-    title: "Fast quotes, faster pours",
-    body: "Most quotes done same-week. Most jobs scheduled within two weeks of acceptance.",
+    title: "Clean job sites.",
+    body: "Plastic down, equipment off your driveway, neighbors not pissed at you afterward.",
   },
 ] as const;
 
@@ -121,7 +127,6 @@ export default function MarketingHome() {
 
   return (
     <>
-      {/* JSON-LD for Google. Runs at request time, no client JS. */}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
@@ -129,20 +134,36 @@ export default function MarketingHome() {
       />
 
       <Hero />
-      <TrustBadgesBlock />
+      <TrustStrip />
       <ServicesGrid />
+      {/* TODO: Restore <RecentProjects /> here once photos land in
+          /public/images/ (or in the project_photos table via the
+          dashboard). The IMAGES.zip from duda-site-content/ wasn't
+          unzipped at the time of this rebuild; section is intentionally
+          omitted rather than rendered with placeholder gradients. */}
+      <WhyRose />
+      <OwnersNote />
       <Section tone="white">
-        <SocialProof />
+        <SocialProof
+          heading="What customers actually say"
+          sub=""
+        />
+        <p className="mt-6 text-center">
+          <a
+            href={GOOGLE_REVIEW_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-sm font-semibold text-accent-700 hover:text-accent-600"
+          >
+            Read all 140+ reviews →
+          </a>
+        </p>
       </Section>
-      <ProgramsCallout />
-      {/* id="recent" — footer "Recent Work" link scrolls here. */}
-      <Section id="recent" tone="cream">
-        <RecentProjects />
-      </Section>
-      <ServiceAreaList />
       <LeadFormBlock />
-      <WhyRoseConcrete />
-      <FinalCallCta />
+      <FinalCallCta
+        heading="Ready to get started?"
+        sub="Free on-site estimates. We'll come measure, talk through options, and email you a written quote within 48 hours."
+      />
     </>
   );
 }
@@ -151,38 +172,80 @@ export default function MarketingHome() {
 
 function Hero() {
   return (
-    <PageHero
-      backgroundImage="/images/hero-patio-hillside.jpg"
-      eyebrow="San Diego County · Veteran-Owned · CA License #1130763"
-      title={
-        <>
-          Free Driveway Quote in 60 Seconds —{" "}
-          <span className="text-accent-600">
-            San Diego&apos;s Veteran-Owned Concrete Pros.
-          </span>
-        </>
-      }
-      sub={
-        <>
-          Driveways, patios, sidewalks, and decorative flatwork. Ronnie pours
-          every job himself with the same in-house crew — quotes back same-week.
-        </>
-      }
-      formProps={{
-        title: "Get Your Free Quote in 60 Seconds",
-        eyebrow: "Free · No obligation · 60 seconds",
-      }}
-    />
+    <section className="relative isolate overflow-hidden border-b border-brand-100 bg-cream-50">
+      <Image
+        src="/images/hero-patio-hillside.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="absolute inset-0 -z-20 object-cover object-center"
+      />
+      {/* Cream wash — same opacity stack the previous hero used. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(245,239,224,0.75) 0%, rgba(253,251,245,0.72) 60%, rgba(255,255,255,0.68) 100%)",
+        }}
+      />
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-24">
+        <h1 className="text-4xl font-extrabold tracking-tight text-brand-900 sm:text-5xl md:text-6xl">
+          San Diego concrete done right.
+          <br className="hidden sm:block" />{" "}
+          <span className="text-accent-600">Licensed, local, on time.</span>
+        </h1>
+
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <a
+            href="#quote"
+            className={buttonClassNames({
+              variant: "primary",
+              size: "xl",
+              className: "w-full sm:w-auto",
+            })}
+          >
+            Get a Free On-Site Estimate
+          </a>
+          <p className="text-sm text-brand-700">
+            Or call{" "}
+            <a
+              href={PHONE_TEL_HREF}
+              className="font-semibold text-accent-700 hover:text-accent-600"
+            >
+              {PHONE_DISPLAY}
+            </a>{" "}
+            — we usually pick up.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 
-// ─── 2. Trust badges ────────────────────────────────────────────────────
+// ─── 2. Trust strip ─────────────────────────────────────────────────────
 
-function TrustBadgesBlock() {
+function TrustStrip() {
   return (
-    <section className="bg-white py-8 sm:py-10">
+    <section className="border-b border-brand-100 bg-cream-50/80 py-4">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <TrustBadges />
+        <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm font-semibold text-brand-800 sm:gap-x-5 sm:text-base">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden="true" className="text-accent-600">
+              ★★★★★
+            </span>
+            <span>140+ Google Reviews</span>
+          </span>
+          <span aria-hidden="true" className="text-brand-300">
+            ·
+          </span>
+          <span>Licensed CSLB #1130763</span>
+          <span aria-hidden="true" className="text-brand-300">
+            ·
+          </span>
+          <span>Veteran-Owned</span>
+        </p>
       </div>
     </section>
   );
@@ -192,7 +255,10 @@ function TrustBadgesBlock() {
 
 function ServicesGrid() {
   return (
-    <section className="bg-cream-50 py-12 sm:py-16" aria-labelledby="services-heading">
+    <section
+      className="bg-white py-12 sm:py-16"
+      aria-labelledby="services-heading"
+    >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <header className="mb-8 max-w-3xl sm:mb-10">
           <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
@@ -202,26 +268,22 @@ function ServicesGrid() {
             id="services-heading"
             className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
           >
-            Concrete work for San Diego homeowners
+            What we build
           </h2>
-          <p className="mt-2 text-base text-brand-700/80">
-            Most homeowners hire us for one of these seven jobs. Tap any to see
-            scope, timeline, and what&apos;s included.
-          </p>
         </header>
 
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {CORE_SERVICES.map((s) => (
-            <li key={s.slug}>
+          {SERVICE_TILES.map((s) => (
+            <li key={s.href}>
               <Link
-                href={`/services/${s.slug}`}
+                href={s.href}
                 className="group flex h-full flex-col rounded-xl border border-brand-100 bg-white p-5 shadow-sm transition hover:border-accent-400 hover:shadow-md"
               >
                 <h3 className="text-xl font-extrabold text-brand-900 group-hover:text-accent-700">
                   {s.name}
                 </h3>
                 <p className="mt-2 text-sm text-brand-700/90">
-                  {s.shortDescription}
+                  {s.description}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-accent-600 group-hover:text-accent-700">
                   See {s.name.toLowerCase()}
@@ -231,96 +293,19 @@ function ServicesGrid() {
             </li>
           ))}
         </ul>
+
+        <p className="mt-6 text-sm italic text-brand-700/80">
+          Also: bollards, retaining walls, RV pads, pickleball courts, and
+          more — ask us.
+        </p>
       </div>
     </section>
   );
 }
 
-// ─── 4. Programs callout ────────────────────────────────────────────────
+// ─── 4. Why us ──────────────────────────────────────────────────────────
 
-function ProgramsCallout() {
-  return (
-    <section
-      className="bg-brand-50 py-12 sm:py-16"
-      aria-labelledby="programs-heading"
-    >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <header className="mb-8 max-w-3xl sm:mb-10">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
-            Popular programs
-          </p>
-          <h2
-            id="programs-heading"
-            className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
-          >
-            Three jobs we book the most
-          </h2>
-        </header>
-
-        <ul className="grid gap-5 md:grid-cols-3">
-          {FEATURED_PROGRAMS.map((p) => (
-            <li key={p.href}>
-              <Link
-                href={p.href}
-                className="group flex h-full flex-col rounded-xl border border-brand-100 bg-white p-6 shadow-sm transition hover:border-accent-400 hover:shadow-md"
-              >
-                <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
-                  {p.eyebrow}
-                </p>
-                <h3 className="mt-1 text-2xl font-extrabold text-brand-900 group-hover:text-accent-700">
-                  {p.name}
-                </h3>
-                <p className="mt-3 text-sm text-brand-700/90">
-                  {p.description}
-                </p>
-                <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-accent-600 group-hover:text-accent-700">
-                  {p.cta}
-                  <span aria-hidden="true">→</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-// ─── 6. Lead form ───────────────────────────────────────────────────────
-
-function LeadFormBlock() {
-  return (
-    <section
-      id="quote"
-      // scroll-mt clears the sticky header on `#quote` anchor jumps.
-      className="scroll-mt-20 bg-white py-14 sm:py-20 sm:scroll-mt-24"
-      aria-labelledby="quote-heading"
-    >
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <header className="mb-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
-            Free · No obligation
-          </p>
-          <h2
-            id="quote-heading"
-            className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
-          >
-            Get a Free Quote
-          </h2>
-          <p className="mt-2 text-base text-brand-700/80">
-            Tell us about the job. We&apos;ll text you a confirmation and Ronnie
-            will call you within the hour.
-          </p>
-        </header>
-        <LeadForm compact />
-      </div>
-    </section>
-  );
-}
-
-// ─── 7. Why Rose Concrete ───────────────────────────────────────────────
-
-function WhyRoseConcrete() {
+function WhyRose() {
   return (
     <section
       className="bg-cream-50 py-14 sm:py-20"
@@ -335,11 +320,11 @@ function WhyRoseConcrete() {
             id="why-heading"
             className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
           >
-            Why homeowners pick us over the big crews
+            Why folks pick Rose
           </h2>
         </header>
 
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid gap-6 sm:grid-cols-3">
           {WHY_REASONS.map((r) => (
             <li
               key={r.title}
@@ -352,6 +337,74 @@ function WhyRoseConcrete() {
             </li>
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+// ─── 5. Owner's note ────────────────────────────────────────────────────
+// Text-only treatment per 2026-04-30 direction — no photo until the
+// IMAGES.zip from duda-site-content/ is unzipped. Don't reserve
+// space for a photo column; ship the copy.
+
+function OwnersNote() {
+  return (
+    <section className="bg-white py-14 sm:py-20" aria-labelledby="owner-heading">
+      <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <h2
+          id="owner-heading"
+          className="text-2xl font-extrabold text-brand-900 sm:text-3xl"
+        >
+          A note from the owner
+        </h2>
+        <blockquote className="mt-6 text-lg text-brand-700 sm:text-xl">
+          &ldquo;I started Rose Concrete because I love building. We&rsquo;re
+          a veteran-owned, family-run business — show up on time, do quality
+          work, treat people right. We&rsquo;re a small local team and we
+          want to stay that way.&rdquo;
+        </blockquote>
+        <p className="mt-4 text-sm font-semibold text-brand-800">
+          — Thomas Rose, Owner
+        </p>
+        <p className="mt-6">
+          <Link
+            href="/about-us"
+            className="text-sm font-semibold text-accent-700 hover:text-accent-600"
+          >
+            Read more about us →
+          </Link>
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── 7. Lead form ───────────────────────────────────────────────────────
+
+function LeadFormBlock() {
+  return (
+    <section
+      id="quote"
+      className="scroll-mt-20 bg-cream-50 py-14 sm:py-20 sm:scroll-mt-24"
+      aria-labelledby="quote-heading"
+    >
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        <header className="mb-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
+            Free · No obligation
+          </p>
+          <h2
+            id="quote-heading"
+            className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
+          >
+            Get a Free Quote
+          </h2>
+          <p className="mt-2 text-base text-brand-700/80">
+            Tell us about the job. We&apos;ll text you a confirmation and
+            Ronnie will call you within the hour.
+          </p>
+        </header>
+        <LeadForm compact />
       </div>
     </section>
   );

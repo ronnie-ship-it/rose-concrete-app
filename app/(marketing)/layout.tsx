@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { MarketingHeader } from "@/components/marketing/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { MobileCallBar } from "@/components/marketing/mobile-call-bar";
-import { StickyTrustBar } from "@/components/marketing/trust-bar";
+import { MarketingUtilityBar } from "@/components/marketing/trust-bar";
 import { GtmHeadScript, GtmNoScript } from "@/components/marketing/gtm";
 import { Ga4Script } from "@/components/marketing/ga4";
 import { GoogleAdsScript } from "@/components/marketing/google-ads";
@@ -106,8 +106,8 @@ export default function MarketingLayout({
       >
         Skip to content
       </a>
+      <MarketingUtilityBar />
       <MarketingHeader />
-      <StickyTrustBar />
       <main id="main" className="pb-20 md:pb-0">
         {children}
       </main>

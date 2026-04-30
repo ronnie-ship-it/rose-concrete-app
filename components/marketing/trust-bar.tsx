@@ -1,94 +1,70 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import {
+  GOOGLE_REVIEW_URL,
+  LICENSE,
+  PHONE_DISPLAY,
+  PHONE_TEL_HREF,
+} from "@/lib/marketing/brand";
 
 /**
- * Sticky trust bar — sits directly under the marketing header.
+ * Top utility bar — thin navy strip above the main marketing header.
  *
- * Visible by default. Hides on scroll DOWN past 200px (gives the user
- * full reading area for body content). Reappears immediately on scroll
- * UP so it's always one finger-flick away.
+ * Desktop: license · phone (click-to-call) on the left, Google Reviews
+ * link on the right.
+ * Mobile (<sm): phone-number link only — license + reviews collapse to
+ * keep the strip readable.
  *
- * Single line of trust signals: rating, veteran-owned, license, free
- * quotes, response time. Single line so it doesn't visually compete
- * with the header's call CTA — its job is reinforcement, not capture.
+ * Not sticky on purpose. Sits at the top of the page; the main
+ * <MarketingHeader> below it takes the sticky slot. Server-rendered,
+ * no client JS — fastest LCP, no layout shift.
+ *
+ * Replaces the previous `StickyTrustBar` (sticky, scroll-aware) per
+ * the 2026-04-30 marketing-batch rebuild.
  */
 
-const SCROLL_HIDE_THRESHOLD = 200;
-
-const SIGNALS = [
-  { icon: "stars", text: "★★★★★ 4.9 Rated" },
-  { icon: null, text: "Veteran-Owned" },
-  { icon: null, text: "CA License #1130763" },
-  { icon: null, text: "Free Quotes" },
-  { icon: "lightning", text: "Same-Day Response" },
-];
-
-export function StickyTrustBar() {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    let lastY = window.scrollY;
-    let ticking = false;
-
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (y < SCROLL_HIDE_THRESHOLD) {
-          // Always show near the top.
-          setVisible(true);
-        } else if (y > lastY + 4) {
-          // Scrolling down a non-trivial amount — hide.
-          setVisible(false);
-        } else if (y < lastY - 4) {
-          // Scrolling up — show.
-          setVisible(true);
-        }
-        lastY = y;
-        ticking = false;
-      });
-    }
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
+function GoogleIcon({ className }: { className?: string }) {
   return (
-    <div
-      aria-hidden={!visible}
-      className={cn(
-        // Sits under the sticky header (z-30 < header's z-40).
-        "sticky top-16 z-30 border-b border-brand-100 bg-brand-50/95 backdrop-blur",
-        "transition-transform duration-200 ease-out",
-        visible ? "translate-y-0" : "-translate-y-full",
-        "sm:top-20",
-      )}
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
     >
-      <div className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-6">
-        <ul className="flex min-w-max items-center justify-center gap-x-4 gap-y-1 py-1.5 text-[11px] font-semibold text-brand-800 sm:gap-x-6 sm:py-2 sm:text-xs">
-          {SIGNALS.map((s, i) => (
-            <li key={s.text} className="flex items-center gap-2">
-              {i > 0 && (
-                <span aria-hidden="true" className="text-brand-300">·</span>
-              )}
-              {s.icon === "stars" && (
-                <span aria-hidden="true" className="text-accent-600">
-                  {s.text}
-                </span>
-              )}
-              {s.icon === "lightning" && (
-                <span className="flex items-center gap-1">
-                  <span aria-hidden="true" className="text-accent-600">⚡</span>
-                  {s.text}
-                </span>
-              )}
-              {!s.icon && <span>{s.text}</span>}
-            </li>
-          ))}
-        </ul>
+      <path d="M21.35 11.1h-9.17v2.92h5.27c-.23 1.45-1.55 4.25-5.27 4.25-3.17 0-5.76-2.62-5.76-5.85s2.59-5.85 5.76-5.85c1.81 0 3.02.77 3.71 1.43l2.53-2.43C16.86 4.04 14.71 3 12.18 3 6.99 3 2.85 7.14 2.85 12.42S6.99 21.85 12.18 21.85c7.03 0 9.34-4.93 9.34-7.42 0-.5-.05-.88-.17-1.33z" />
+    </svg>
+  );
+}
+
+export function MarketingUtilityBar() {
+  return (
+    <div className="bg-brand-900 text-cream-50">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-1.5 text-xs sm:px-6">
+        {/* Left side: license + phone on desktop, phone only on mobile. */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className="hidden font-semibold tracking-wide text-cream-50/80 sm:inline">
+            Licensed {LICENSE.replace("CA License ", "")}
+          </span>
+          <span aria-hidden="true" className="hidden text-cream-50/30 sm:inline">
+            ·
+          </span>
+          <a
+            href={PHONE_TEL_HREF}
+            className="font-bold text-white transition hover:text-accent-300"
+          >
+            {PHONE_DISPLAY}
+          </a>
+        </div>
+
+        {/* Right side: Google Reviews. Hidden on the smallest phones. */}
+        <a
+          href={GOOGLE_REVIEW_URL}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label="Read our Google Reviews"
+          className="hidden items-center gap-1.5 font-semibold text-cream-50/90 transition hover:text-accent-300 sm:inline-flex"
+        >
+          <GoogleIcon className="h-3.5 w-3.5" />
+          <span>Google Reviews</span>
+        </a>
       </div>
     </div>
   );
