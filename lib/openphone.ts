@@ -12,6 +12,9 @@
  * run before creds land.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 export type OpenPhoneCall = {
   external_id: string;
   direction: "inbound" | "outbound";
@@ -103,7 +106,7 @@ const OPENPHONE_BASE_URL = "https://api.openphone.com/v1";
 // sendMessage in production.
 type OpenPhoneNumber = { id: string; number: string };
 
-type OpenPhoneApiCall = {
+export type OpenPhoneApiCall = {
   id: string;
   direction: "incoming" | "outgoing";
   from: string;
@@ -119,7 +122,7 @@ type OpenPhoneApiCall = {
   voicemail?: unknown;
 };
 
-type OpenPhoneApiMessage = {
+export type OpenPhoneApiMessage = {
   id: string;
   direction: "incoming" | "outgoing";
   from: string;
@@ -183,7 +186,7 @@ function callMissed(c: OpenPhoneApiCall): boolean {
   return !answered;
 }
 
-function mapCall(c: OpenPhoneApiCall): OpenPhoneCall {
+export function mapCall(c: OpenPhoneApiCall): OpenPhoneCall {
   return {
     external_id: c.id,
     direction: dirMap(c.direction),
@@ -196,7 +199,7 @@ function mapCall(c: OpenPhoneApiCall): OpenPhoneCall {
   };
 }
 
-function mapMessage(m: OpenPhoneApiMessage): OpenPhoneMessage {
+export function mapMessage(m: OpenPhoneApiMessage): OpenPhoneMessage {
   const mediaFromObjs = (m.media ?? [])
     .map((x) => x.url)
     .filter((u): u is string => Boolean(u));
@@ -424,4 +427,397 @@ export function phoneMatchVariants(
   if (last10) variants.add(last10);
   if (digits.length > 0) variants.add(digits);
   return Array.from(variants);
+}
+
+/**
+ * Sync result returned by `syncOpenPhoneCalls` / `syncOpenPhoneMessages`.
+ * The cron and the webhook both surface these counts in their response
+ * for observability.
+ */
+export type OpenPhoneSyncResult = {
+  inserted: number;
+  leadsCreated: number;
+  missedCallTasks: number;
+  errors: string[];
+};
+
+/**
+ * Insert a batch of OpenPhone calls into `communications`, attaching to
+ * existing clients by phone match and routing unknown numbers through
+ * `createLead()` (same pipeline as the Poptin webhook + /book form).
+ *
+ * Idempotent on `communications.external_id` — the unique index makes
+ * webhook + cron double-delivery safe (one wins, the other gets a
+ * "duplicate key" error which we silently ignore).
+ *
+ * Missed inbound calls auto-seed a row in `tasks` so Ronnie sees them on
+ * the dashboard. Matches the behaviour the cron has had since shipping.
+ */
+export async function syncOpenPhoneCalls(
+  supabase: SupabaseClient,
+  calls: OpenPhoneCall[],
+): Promise<OpenPhoneSyncResult> {
+  const result: OpenPhoneSyncResult = {
+    inserted: 0,
+    leadsCreated: 0,
+    missedCallTasks: 0,
+    errors: [],
+  };
+  if (!calls || calls.length === 0) return result;
+
+  const { phoneToClientId, lookupClientId, ensureClientForUnknown } =
+    await buildClientLookup(supabase);
+
+  // Pre-load existing external_ids in one round trip so we don't insert
+  // a row only for the unique-index to bounce it. (The catch path below
+  // still handles concurrent-write races.)
+  const externalIds = calls.map((c) => c.external_id).filter(Boolean);
+  const seen = await loadSeenExternalIds(supabase, externalIds);
+
+  for (const call of calls) {
+    if (call.external_id && seen.has(call.external_id)) continue;
+    let clientId = lookupClientId(call.phone_number);
+    if (!clientId) {
+      const { clientId: newId, leadCreated } = await ensureClientForUnknown(
+        call.phone_number,
+      );
+      clientId = newId;
+      if (leadCreated) result.leadsCreated++;
+    }
+    const { error } = await supabase.from("communications").insert({
+      client_id: clientId,
+      external_id: call.external_id,
+      direction: call.direction,
+      channel: "call",
+      phone_number: normalizePhone(call.phone_number) ?? call.phone_number,
+      started_at: call.started_at,
+      duration_s: call.duration_s,
+      recording_url: call.recording_url,
+      transcript: call.transcript,
+      was_missed: call.was_missed,
+    });
+    if (error) {
+      // duplicate-key races are expected (cron + webhook both ingesting).
+      if (!/duplicate key/i.test(error.message)) {
+        console.error("[openphone-sync] call insert failed", error);
+        result.errors.push(`call ${call.external_id}: ${error.message}`);
+      }
+      continue;
+    }
+    seen.add(call.external_id);
+    result.inserted++;
+
+    if (call.was_missed && clientId) {
+      const taskOk = await seedMissedCallTask(supabase, clientId, call);
+      if (taskOk) result.missedCallTasks++;
+    }
+
+    // Attach the phone to the lookup map so a follow-up SMS in the same
+    // batch (e.g. webhook batch) routes to the just-created client.
+    if (clientId) {
+      for (const v of phoneMatchVariants(call.phone_number)) {
+        phoneToClientId.set(v, clientId);
+      }
+    }
+  }
+  return result;
+}
+
+/** Same as syncOpenPhoneCalls but for SMS. */
+export async function syncOpenPhoneMessages(
+  supabase: SupabaseClient,
+  messages: OpenPhoneMessage[],
+): Promise<OpenPhoneSyncResult> {
+  const result: OpenPhoneSyncResult = {
+    inserted: 0,
+    leadsCreated: 0,
+    missedCallTasks: 0,
+    errors: [],
+  };
+  if (!messages || messages.length === 0) return result;
+
+  const { phoneToClientId, lookupClientId, ensureClientForUnknown } =
+    await buildClientLookup(supabase);
+
+  const externalIds = messages.map((m) => m.external_id).filter(Boolean);
+  const seen = await loadSeenExternalIds(supabase, externalIds);
+
+  for (const msg of messages) {
+    if (msg.external_id && seen.has(msg.external_id)) continue;
+    let clientId = lookupClientId(msg.phone_number);
+    if (!clientId) {
+      const { clientId: newId, leadCreated } = await ensureClientForUnknown(
+        msg.phone_number,
+      );
+      clientId = newId;
+      if (leadCreated) result.leadsCreated++;
+    }
+    const { error } = await supabase.from("communications").insert({
+      client_id: clientId,
+      external_id: msg.external_id,
+      direction: msg.direction,
+      channel: "sms",
+      phone_number: normalizePhone(msg.phone_number) ?? msg.phone_number,
+      started_at: msg.started_at,
+      body: msg.body,
+    });
+    if (error) {
+      if (!/duplicate key/i.test(error.message)) {
+        console.error("[openphone-sync] sms insert failed", error);
+        result.errors.push(`sms ${msg.external_id}: ${error.message}`);
+      }
+      continue;
+    }
+    seen.add(msg.external_id);
+    result.inserted++;
+
+    if (clientId) {
+      for (const v of phoneMatchVariants(msg.phone_number)) {
+        phoneToClientId.set(v, clientId);
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Update the transcript on an existing `communications` row by external_id.
+ * Used by the `call.transcript.completed` webhook event — by the time the
+ * transcript is ready, the row was already inserted by `call.completed`.
+ *
+ * Returns true if a row was updated, false if no row matched. Silent no-op
+ * on a transcript-only webhook for a call we never received via
+ * `call.completed` (could happen if the webhook misses an event).
+ */
+export async function updateCallTranscript(
+  supabase: SupabaseClient,
+  externalId: string,
+  transcript: string | null,
+): Promise<boolean> {
+  if (!externalId || !transcript) return false;
+  const { data, error } = await supabase
+    .from("communications")
+    .update({ transcript })
+    .eq("external_id", externalId)
+    .select("id");
+  if (error) {
+    console.error("[openphone-sync] transcript update failed", error);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
+}
+
+/**
+ * Pull a transcript from OpenPhone's REST API for a specific call.
+ * Used as a fallback when the `call.transcript.completed` webhook
+ * payload doesn't include transcript text inline (paranoid path —
+ * the docs are ambiguous and we don't want to silently miss it).
+ */
+export async function getCallTranscript(
+  callId: string,
+  apiKey: string = process.env.OPENPHONE_API_KEY ?? "",
+): Promise<string | null> {
+  if (!apiKey || !callId) return null;
+  const res = await fetch(
+    `${OPENPHONE_BASE_URL}/call-transcripts/${encodeURIComponent(callId)}`,
+    {
+      headers: { Authorization: apiKey, "Content-Type": "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    if (res.status !== 404) {
+      console.warn(
+        `[openphone] transcript fetch ${res.status} for call ${callId}`,
+      );
+    }
+    return null;
+  }
+  type TranscriptResp = {
+    data?: {
+      transcript?: string;
+      dialogue?: Array<{ content?: string; speaker?: string }>;
+    };
+  };
+  const json = (await res.json().catch(() => ({}))) as TranscriptResp;
+  if (json.data?.transcript) return json.data.transcript;
+  if (json.data?.dialogue?.length) {
+    return json.data.dialogue
+      .map((d) => `${d.speaker ?? "?"}: ${d.content ?? ""}`)
+      .join("\n");
+  }
+  return null;
+}
+
+/**
+ * Verify an OpenPhone webhook signature.
+ *
+ * Header format: `hmac;<version>;<timestamp_ms>;<base64_signature>`
+ * Signed payload: `<timestamp> + "." + <raw_body>`
+ * Algorithm: HMAC-SHA256 with a base64-decoded signing key (the key
+ * Quo gives you in the dashboard when you create the webhook).
+ *
+ * Returns false on any malformed input — never throws, so the caller
+ * can treat the boolean as the entire auth decision.
+ *
+ * MAX_SKEW_MS is 5 minutes — replay-protection. OpenPhone's docs are
+ * silent on the right window but 5 min is the Stripe convention.
+ */
+const MAX_SIGNATURE_SKEW_MS = 5 * 60 * 1000;
+
+export function verifyOpenPhoneSignature(opts: {
+  rawBody: string;
+  signatureHeader: string | null | undefined;
+  signingKey: string;
+  /** Override "now" for tests. */
+  nowMs?: number;
+}): { ok: boolean; reason?: string } {
+  const { rawBody, signatureHeader, signingKey } = opts;
+  const nowMs = opts.nowMs ?? Date.now();
+  if (!signatureHeader) return { ok: false, reason: "missing-header" };
+  if (!signingKey) return { ok: false, reason: "missing-signing-key" };
+
+  const parts = signatureHeader.split(";");
+  if (parts.length !== 4) return { ok: false, reason: "bad-format" };
+  const [scheme, version, timestampStr, signatureB64] = parts;
+  if (scheme !== "hmac") return { ok: false, reason: "bad-scheme" };
+  if (version !== "1") return { ok: false, reason: "bad-version" };
+  const timestamp = Number(timestampStr);
+  if (!Number.isFinite(timestamp)) {
+    return { ok: false, reason: "bad-timestamp" };
+  }
+  if (Math.abs(nowMs - timestamp) > MAX_SIGNATURE_SKEW_MS) {
+    return { ok: false, reason: "stale-timestamp" };
+  }
+
+  let keyBytes: Buffer;
+  try {
+    keyBytes = Buffer.from(signingKey, "base64");
+  } catch {
+    return { ok: false, reason: "bad-key" };
+  }
+
+  // Strip whitespace/newlines from JSON body before signing — per
+  // OpenPhone's verification spec.
+  const stripped = rawBody.replace(/\s/g, "");
+  const signed = `${timestampStr}.${stripped}`;
+  const expected = createHmac("sha256", keyBytes).update(signed).digest("base64");
+
+  let actualBuf: Buffer;
+  try {
+    actualBuf = Buffer.from(signatureB64, "base64");
+  } catch {
+    return { ok: false, reason: "bad-signature" };
+  }
+  const expectedBuf = Buffer.from(expected, "base64");
+  if (actualBuf.length !== expectedBuf.length) {
+    return { ok: false, reason: "length-mismatch" };
+  }
+  if (!timingSafeEqual(actualBuf, expectedBuf)) {
+    return { ok: false, reason: "mismatch" };
+  }
+  return { ok: true };
+}
+
+// ----- internals shared by the syncers -----
+
+type ClientRow = { id: string; phone: string | null };
+
+async function buildClientLookup(supabase: SupabaseClient): Promise<{
+  phoneToClientId: Map<string, string>;
+  lookupClientId: (phone: string) => string | null;
+  ensureClientForUnknown: (
+    phone: string,
+  ) => Promise<{ clientId: string | null; leadCreated: boolean }>;
+}> {
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, phone");
+  const phoneToClientId = new Map<string, string>();
+  for (const c of (clients ?? []) as ClientRow[]) {
+    for (const v of phoneMatchVariants(c.phone)) {
+      if (!phoneToClientId.has(v)) phoneToClientId.set(v, c.id);
+    }
+  }
+
+  function lookupClientId(phone: string): string | null {
+    for (const v of phoneMatchVariants(phone)) {
+      const id = phoneToClientId.get(v);
+      if (id) return id;
+    }
+    return null;
+  }
+
+  async function ensureClientForUnknown(
+    phone: string,
+  ): Promise<{ clientId: string | null; leadCreated: boolean }> {
+    const normalized = normalizePhone(phone) ?? phone;
+    // Lazy import — `lib/leads.ts` imports `lib/openphone.ts`, so a
+    // top-level import would create a cycle.
+    const { createLead } = await import("@/lib/leads");
+    const result = await createLead(
+      {
+        source: "openphone_inbound",
+        phone: normalized,
+        name: null,
+        email: null,
+        raw_payload: { phone: normalized, intake: "openphone_sync" },
+      },
+      supabase,
+    );
+    if (!result.ok) {
+      console.error("[openphone-sync] createLead failed", result.error);
+      return { clientId: null, leadCreated: false };
+    }
+    if (result.duplicate) {
+      const { data } = await supabase
+        .from("leads")
+        .select("client_id")
+        .eq("id", result.lead_id)
+        .maybeSingle();
+      return { clientId: data?.client_id ?? null, leadCreated: false };
+    }
+    return { clientId: result.client_id, leadCreated: true };
+  }
+
+  return { phoneToClientId, lookupClientId, ensureClientForUnknown };
+}
+
+async function loadSeenExternalIds(
+  supabase: SupabaseClient,
+  externalIds: string[],
+): Promise<Set<string>> {
+  if (externalIds.length === 0) return new Set();
+  const { data } = await supabase
+    .from("communications")
+    .select("external_id")
+    .in("external_id", externalIds);
+  return new Set(
+    ((data ?? []) as Array<{ external_id: string | null }>)
+      .map((r) => r.external_id)
+      .filter(Boolean) as string[],
+  );
+}
+
+async function seedMissedCallTask(
+  supabase: SupabaseClient,
+  clientId: string,
+  call: OpenPhoneCall,
+): Promise<boolean> {
+  const phone = normalizePhone(call.phone_number) ?? call.phone_number;
+  const { error } = await supabase.from("tasks").insert({
+    title: `Missed call from ${phone}`,
+    body: call.recording_url
+      ? `Voicemail: ${call.recording_url}`
+      : "No voicemail.",
+    client_id: clientId,
+    source: "missed_call",
+    source_id: call.external_id,
+    status: "open",
+  });
+  if (error) {
+    console.error("[openphone-sync] task insert failed", error);
+    return false;
+  }
+  return true;
 }
