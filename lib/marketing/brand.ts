@@ -66,14 +66,20 @@ export const SERVICE_AREAS = [
 ] as const;
 
 /**
- * Top-level nav items shown in the marketing header on desktop.
+ * Top-level nav items shown in the marketing header.
  *
  * "Service Areas" intentionally lives in the footer only — keeps the
  * top nav scannable on mobile, and the /service-areas index + 13 city
  * pages stay live for SEO + direct-URL access.
+ *
+ * The "Services" item has a dropdown rendered by <MarketingHeader>
+ * sourced from CORE_SERVICES; this entry is the parent link/label.
+ * "Projects" deep-links to the homepage Recent Work gallery anchor.
  */
 export const PRIMARY_NAV = [
+  { label: "Home", href: "/" },
   { label: "Services", href: "/services" },
+  { label: "Projects", href: "/#recent" },
   { label: "About", href: "/about-us" },
   { label: "Contact", href: "/contact" },
 ] as const;

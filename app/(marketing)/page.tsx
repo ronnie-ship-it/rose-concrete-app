@@ -16,23 +16,20 @@ import { localBusinessJsonLd, SITE_ORIGIN } from "@/lib/marketing/schema";
 /**
  * Home page — sandiegoconcrete.ai
  *
- * Rebuilt 2026-04-30 to spec (see duda-site-content/WEBSITE_COPY_DRAFT.md).
  * Section order:
- *   1. Hero            — headline + single CTA (form lives lower on page)
- *   2. Trust strip     — reviews · license · veteran-owned
- *   3. Services grid   — 5 spec tiles + "also: …" line
- *   4. Why us          — 3 cards (veteran-owned · in-house crew · clean sites)
- *   5. Owner's note    — short founder paragraph, links to /about-us
- *   6. Reviews         — kept existing pull-quotes (heading updated)
- *   7. Lead form       — anchor #quote, target for hero + final-CTA buttons
- *   8. Final CTA band  — phone + "Get a Free On-Site Estimate"
+ *   1. Hero             — headline + single CTA (form lives lower)
+ *   2. Trust strip      — reviews · license · veteran-owned
+ *   3. Services grid    — 5 spec tiles + "also: …" line
+ *   4. Recent Projects  — 9-photo 3-column grid (id="recent")
+ *   5. Why us           — 3 cards (veteran-owned, in-house, clean sites)
+ *   6. Owner's note     — Thomas Rose blurb + crew photo
+ *   7. Reviews          — pull-quotes ("What customers actually say")
+ *   8. Lead form        — anchor #quote, target for hero + final CTAs
+ *   9. Final CTA band   — phone + "Get a Free On-Site Estimate"
  *
- * Recent Projects gallery is intentionally OFF until the IMAGES.zip from
- * the old Duda capture lands (`duda-site-content/images/`). When photos
- * exist in /public/images/, restore the <RecentProjects /> import + the
- * <Section id="recent" tone="cream"> block between Why-us and Owner's
- * note. The footer "Recent Work" link still resolves once that section
- * is back; for now it's hidden until photos exist.
+ * Photo grid renders nine curated jpgs from /public/images/ — selection
+ * documented in RECENT_PROJECTS below. To swap photos, replace the
+ * filename + alt; the grid layout is fixed at 3 cols on lg+.
  */
 
 const TITLE =
@@ -136,11 +133,7 @@ export default function MarketingHome() {
       <Hero />
       <TrustStrip />
       <ServicesGrid />
-      {/* TODO: Restore <RecentProjects /> here once photos land in
-          /public/images/ (or in the project_photos table via the
-          dashboard). The IMAGES.zip from duda-site-content/ wasn't
-          unzipped at the time of this rebuild; section is intentionally
-          omitted rather than rendered with placeholder gradients. */}
+      <RecentProjects />
       <WhyRose />
       <OwnersNote />
       <Section tone="white">
@@ -215,8 +208,7 @@ function Hero() {
               className="font-semibold text-accent-700 hover:text-accent-600"
             >
               {PHONE_DISPLAY}
-            </a>{" "}
-            — we usually pick up.
+            </a>
           </p>
         </div>
       </div>
@@ -342,38 +334,133 @@ function WhyRose() {
   );
 }
 
-// ─── 5. Owner's note ────────────────────────────────────────────────────
-// Text-only treatment per 2026-04-30 direction — no photo until the
-// IMAGES.zip from duda-site-content/ is unzipped. Don't reserve
-// space for a photo column; ship the copy.
+// ─── 6. Owner's note ────────────────────────────────────────────────────
 
 function OwnersNote() {
   return (
     <section className="bg-white py-14 sm:py-20" aria-labelledby="owner-heading">
-      <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-        <h2
-          id="owner-heading"
-          className="text-2xl font-extrabold text-brand-900 sm:text-3xl"
-        >
-          A note from the owner
-        </h2>
-        <blockquote className="mt-6 text-lg text-brand-700 sm:text-xl">
-          &ldquo;I started Rose Concrete because I love building. We&rsquo;re
-          a veteran-owned, family-run business — show up on time, do quality
-          work, treat people right. We&rsquo;re a small local team and we
-          want to stay that way.&rdquo;
-        </blockquote>
-        <p className="mt-4 text-sm font-semibold text-brand-800">
-          — Thomas Rose, Owner
-        </p>
-        <p className="mt-6">
-          <Link
-            href="/about-us"
-            className="text-sm font-semibold text-accent-700 hover:text-accent-600"
+      <div className="mx-auto grid max-w-5xl gap-10 px-4 sm:px-6 md:grid-cols-[2fr,3fr] md:items-center md:gap-12">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 shadow-sm">
+          <Image
+            src="/images/rose-shirt-crew.jpg"
+            alt="Thomas Rose with the Rose Concrete crew on a San Diego job site"
+            fill
+            sizes="(min-width: 768px) 40vw, 100vw"
+            className="object-cover"
+          />
+        </div>
+        <div>
+          <h2
+            id="owner-heading"
+            className="text-2xl font-extrabold text-brand-900 sm:text-3xl"
           >
-            Read more about us →
-          </Link>
-        </p>
+            A note from the owner
+          </h2>
+          <blockquote className="mt-5 text-lg text-brand-700 sm:text-xl">
+            &ldquo;I started Rose Concrete because I love building.
+            We&rsquo;re a veteran-owned, family-run business — show up on
+            time, do quality work, treat people right. We&rsquo;re a small
+            local team and we want to stay that way.&rdquo;
+          </blockquote>
+          <p className="mt-4 text-sm font-semibold text-brand-800">
+            — Thomas Rose, Owner
+          </p>
+          <p className="mt-6">
+            <Link
+              href="/about-us"
+              className="text-sm font-semibold text-accent-700 hover:text-accent-600"
+            >
+              Read more about us →
+            </Link>
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── 4. Recent Projects ─────────────────────────────────────────────────
+// Curated 9-photo grid. Files live in /public/images/. Replace any
+// item by swapping the file + alt; layout stays a fixed 3-col grid
+// on lg+ (1-col on mobile, 2-col on sm).
+
+const RECENT_PROJECT_PHOTOS = [
+  {
+    src: "/images/01-driveway-pink-house-hero.jpg",
+    alt: "Finished concrete driveway at a pink stucco home in San Diego",
+  },
+  {
+    src: "/images/04-driveway-tan-palms-pour-day.jpg",
+    alt: "Crew pouring a fresh concrete driveway lined with palm trees on pour day",
+  },
+  {
+    src: "/images/12-walkway-spanish-wraparound.jpg",
+    alt: "Wraparound concrete walkway at a Spanish-style San Diego home",
+  },
+  {
+    src: "/images/15-patio-stamped-ashlar-hero.jpg",
+    alt: "Stamped concrete patio with an ashlar slate pattern",
+  },
+  {
+    src: "/images/19-patio-hillside-canyon-view.jpg",
+    alt: "Hillside concrete patio overlooking a San Diego canyon",
+  },
+  {
+    src: "/images/21-patio-stamped-herringbone-firepit.jpg",
+    alt: "Stamped concrete patio with herringbone pattern and a built-in firepit",
+  },
+  {
+    src: "/images/28-sidewalk-fresh-pour-with-tape.jpg",
+    alt: "Freshly poured concrete sidewalk roped off with caution tape",
+  },
+  {
+    src: "/images/30-pickleball-court-aerial.jpg",
+    alt: "Aerial view of a finished concrete pickleball court",
+  },
+  {
+    src: "/images/36-process-trowel-action.jpg",
+    alt: "Crew member troweling fresh concrete during a pour",
+  },
+] as const;
+
+function RecentProjects() {
+  return (
+    <section
+      id="recent"
+      className="scroll-mt-20 bg-cream-50 py-12 sm:py-16 sm:scroll-mt-24"
+      aria-labelledby="recent-heading"
+    >
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <header className="mb-8 max-w-3xl sm:mb-10">
+          <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
+            Recent work · San Diego County
+          </p>
+          <h2
+            id="recent-heading"
+            className="mt-1 text-3xl font-extrabold text-brand-900 sm:text-4xl"
+          >
+            Recent work in San Diego
+          </h2>
+        </header>
+
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {RECENT_PROJECT_PHOTOS.map((p) => (
+            <li
+              key={p.src}
+              className="overflow-hidden rounded-xl border border-brand-100 bg-white shadow-sm"
+            >
+              <div className="relative aspect-[4/3]">
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

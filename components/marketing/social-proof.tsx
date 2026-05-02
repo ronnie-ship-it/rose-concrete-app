@@ -48,14 +48,6 @@ export function SocialProof({
             key={`${r.author}-${i}`}
             className="relative flex h-full flex-col rounded-xl border border-brand-100 bg-white p-5 shadow-sm"
           >
-            {r.placeholder && (
-              <span
-                className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800"
-                aria-hidden="true"
-              >
-                Placeholder
-              </span>
-            )}
             <div
               className="text-accent-500"
               aria-label={`${r.rating} out of 5 stars`}

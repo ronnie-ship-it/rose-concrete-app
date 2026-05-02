@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-// TODO: swap to <Image src="/images/ronnie-and-lacy.jpg" /> after IMAGES.zip
-// is unzipped (duda-site-content/images/Rose-1920w.jpg → /public/images/).
 import { FinalCallCta } from "@/components/marketing/final-cta";
 import {
   GOOGLE_REVIEW_URL,
@@ -23,10 +22,8 @@ import {
  * its TODO banners, "How we run jobs" / "Why concrete" / Licenses
  * blocks. Spec lives in duda-site-content/WEBSITE_COPY_DRAFT.md.
  *
- * The Ronnie + Lacy photo placeholder block is intentional — once
- * IMAGES.zip is extracted into duda-site-content/images/ and the
- * Rose-1920w.jpg copy lands at /public/images/ronnie-and-lacy.jpg,
- * swap the gradient block for an <Image> (see TODO at top of file).
+ * Page photo (rose-shirt-crew.jpg) shows Thomas Rose with the crew on
+ * a job site — also used in the homepage Owner's note section.
  */
 
 const TITLE =
@@ -97,30 +94,16 @@ export default function AboutPage() {
       {/* Photo + body */}
       <section className="bg-white py-14 sm:py-20">
         <div className="mx-auto grid max-w-5xl gap-10 px-4 sm:px-6 md:grid-cols-[2fr,3fr] md:items-center md:gap-12">
-          {/*
-            Photo slot. Renders a cream/blue gradient placeholder until
-            IMAGES.zip is unzipped and Rose-1920w.jpg gets copied to
-            /public/images/ronnie-and-lacy.jpg. When the file lands,
-            replace this block with:
-
-              <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 shadow-sm">
-                <Image
-                  src="/images/ronnie-and-lacy.jpg"
-                  alt="Ronnie and Lacy Rose"
-                  fill
-                  sizes="(min-width: 768px) 40vw, 100vw"
-                  className="object-cover"
-                />
-              </div>
-          */}
-          <div
-            className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 shadow-sm"
-            aria-hidden="true"
-            style={{
-              background:
-                "linear-gradient(135deg, #f5efe0 0%, #d7dde9 100%)",
-            }}
-          />
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 shadow-sm">
+            <Image
+              src="/images/rose-shirt-crew.jpg"
+              alt="Thomas Rose with the Rose Concrete crew on a San Diego job site"
+              fill
+              sizes="(min-width: 768px) 40vw, 100vw"
+              className="object-cover"
+              priority
+            />
+          </div>
 
           <div>
             <h2 className="text-3xl font-extrabold text-brand-900 sm:text-4xl">
