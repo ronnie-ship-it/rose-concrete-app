@@ -5,7 +5,6 @@ import { MobileCallBar } from "@/components/marketing/mobile-call-bar";
 import { MarketingUtilityBar } from "@/components/marketing/trust-bar";
 import { GtmHeadScript, GtmNoScript } from "@/components/marketing/gtm";
 import { Ga4Script } from "@/components/marketing/ga4";
-import { GoogleAdsScript } from "@/components/marketing/google-ads";
 import { PhoneClickTracker } from "@/components/marketing/phone-click-tracker";
 import { SITE_ORIGIN } from "@/lib/marketing/schema";
 
@@ -94,12 +93,15 @@ export default function MarketingLayout({
     <div className="min-h-screen bg-white text-brand-900">
       <GtmHeadScript />
       <GtmNoScript />
-      {/* GA4 + Google Ads — direct gtag.js. Both env-gated; render
-          nothing if the corresponding NEXT_PUBLIC_* var is unset.
-          Only mounted in the (marketing) tree so internal admin
-          traffic on /dashboard and /crew is never measured. */}
+      {/* GA4 — direct gtag.js, env-gated; renders nothing if
+          NEXT_PUBLIC_GA_MEASUREMENT_ID is unset. Mounted only in the
+          (marketing) tree so internal admin traffic on /dashboard and
+          /crew is never measured.
+          The Google Ads tag (NEXT_PUBLIC_GOOGLE_ADS_ID) is loaded from
+          app/layout.tsx instead — sitewide, so any URL Performance Max
+          routes to is tagged, even outside this group. The conversion
+          event itself fires from components/marketing/lead-form.tsx. */}
       <Ga4Script />
-      <GoogleAdsScript />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded focus:bg-brand-900 focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-white"

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import Script from "next/script";
 import "./globals.css";
+
+const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 
 export const metadata: Metadata = {
   // metadataBase resolves relative OG image URLs to the marketing apex.
@@ -53,6 +56,29 @@ export default async function RootLayout({
     <html lang={lang} className={theme === "dark" ? "dark" : undefined}>
       <body className="min-h-screen bg-neutral-50 text-neutral-900 antialiased dark:bg-brand-900 dark:text-neutral-100">
         {children}
+        {/* Google tag (gtag.js) — sitewide so any URL Performance Max
+            sends a visitor to is tagged, even routes outside the
+            (marketing) group. The conversion event itself fires from
+            components/marketing/lead-form.tsx after a successful submit
+            (with Enhanced Conversion user data). Env-gated so dev
+            traffic doesn't pollute the production conversion count. */}
+        {googleAdsId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = window.gtag || gtag;
+gtag('js', new Date());
+gtag('config', '${googleAdsId}');
+              `.trim()}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

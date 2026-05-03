@@ -1,7 +1,7 @@
 /**
  * Browser-side analytics fan-out.
  *
- * Three independent transports, all called from the same call sites:
+ * Two transports here, plus a third fired from the lead-form itself:
  *
  *   1. GTM dataLayer — `pushEvent({ event: "lead_submitted", ... })`
  *      Pushes to window.dataLayer for any GTM-managed tags. No-op if
@@ -13,32 +13,16 @@
  *      the property's "Conversions" report shows lead volume per
  *      page. No-op if window.gtag isn't loaded (env unset).
  *
- *   3. Google Ads conversion — same `trackGenerateLead({ ... })`
- *      If `window.ROSE_GADS_CONVERSION` is set (see
- *      components/marketing/google-ads.tsx), also fires
- *      `gtag('event', 'conversion', { send_to: ... })`. No-op until
- *      the conversion ID + label are pasted in.
+ *   3. Google Ads conversion — fired directly from
+ *      components/marketing/lead-form.tsx so it can attach Enhanced
+ *      Conversion user data (email, phone, name, postal code) before
+ *      the event. Lives there, not here, because the user data only
+ *      exists at the form-submit call site.
  *
- * Every transport is safe to call from anywhere — none throw, none
- * require an env-check at the call site.
+ * Window/gtag globals live in types/gtag.d.ts. Every transport is
+ * safe to call from anywhere — none throw, none require an env-check
+ * at the call site.
  */
-
-// ─── Type augmentations ────────────────────────────────────────────────
-
-type GtagFn = (
-  command: "event" | "config" | "js" | "set",
-  ...args: unknown[]
-) => void;
-
-declare global {
-  interface Window {
-    dataLayer?: object[];
-    gtag?: GtagFn;
-    /** Set by components/marketing/google-ads.tsx when env is configured.
-     *  Format: "AW-XXXXXXXXX/AbCdEfGhIj" */
-    ROSE_GADS_CONVERSION?: string;
-  }
-}
 
 // ─── GTM dataLayer transport ───────────────────────────────────────────
 
@@ -80,9 +64,8 @@ export type GenerateLeadParams = {
 };
 
 /**
- * Fire the GA4 `generate_lead` recommended event AND the Google Ads
- * conversion event in one call. Used by the LeadForm after the
- * server-side `/api/leads` call returns ok.
+ * Fire the GA4 `generate_lead` recommended event. Used by the
+ * LeadForm after the server-side `/api/leads` call returns ok.
  *
  * GA4 spec: https://support.google.com/analytics/answer/9267735 — the
  * `generate_lead` recommended event uses `value` + `currency` so it
@@ -90,8 +73,12 @@ export type GenerateLeadParams = {
  * lead counts as one conversion (Ronnie can multiply by his average
  * lead value in GA4's settings if he wants $-denominated reporting).
  *
- * Both events fail silently when the underlying tag isn't loaded —
- * see `try/catch` below. Never blocks the form's success render.
+ * The Google Ads conversion event is NOT fired here — it's fired
+ * directly from components/marketing/lead-form.tsx so it can attach
+ * Enhanced Conversion user data first.
+ *
+ * Fails silently when the underlying tag isn't loaded — see
+ * `try/catch` below. Never blocks the form's success render.
  */
 export function trackGenerateLead(params: GenerateLeadParams): void {
   if (typeof window === "undefined") return;
@@ -110,25 +97,5 @@ export function trackGenerateLead(params: GenerateLeadParams): void {
     // Never let a tag failure break the form's success path.
     // eslint-disable-next-line no-console
     console.warn("[analytics] GA4 generate_lead failed:", err);
-  }
-
-  // Google Ads — conversion event. Only fires when the conversion
-  // ID + label have been pasted into NEXT_PUBLIC_GADS_CONVERSION_ID
-  // (see components/marketing/google-ads.tsx).
-  try {
-    if (
-      typeof window.gtag === "function" &&
-      typeof window.ROSE_GADS_CONVERSION === "string" &&
-      window.ROSE_GADS_CONVERSION.length > 0
-    ) {
-      window.gtag("event", "conversion", {
-        send_to: window.ROSE_GADS_CONVERSION,
-        value: 1.0,
-        currency: "USD",
-      });
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[analytics] Google Ads conversion failed:", err);
   }
 }

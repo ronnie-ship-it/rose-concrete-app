@@ -189,7 +189,9 @@ export function LeadForm({
         return;
       }
 
-      const firstName = parsed.data.name.split(/\s+/)[0] ?? "you";
+      const nameParts = parsed.data.name.trim().split(/\s+/);
+      const firstName = nameParts[0] ?? "you";
+      const lastName = nameParts.slice(1).join(" ") || undefined;
       setState({
         status: "success",
         firstName,
@@ -201,8 +203,9 @@ export function LeadForm({
       //   - GA4 `generate_lead` recommended event — direct gtag, shows
       //     up in the property's Conversions report with source_page
       //     attribution.
-      //   - Google Ads conversion (if NEXT_PUBLIC_GADS_CONVERSION_ID is
-      //     set) — fires the AW- conversion event for paid-traffic ROI.
+      //   - Google Ads conversion (if NEXT_PUBLIC_GOOGLE_ADS_ID is set
+      //     in app/layout.tsx) — fires the AW- conversion event with
+      //     Enhanced Conversion user data attached.
       // All three no-op safely when their respective env / tag isn't
       // loaded. None throw. None can break the form's success path.
       pushEvent({
@@ -216,6 +219,34 @@ export function LeadForm({
         source_page: pathname,
         service_type: parsed.data.service_type || undefined,
       });
+      // Google Ads conversion + Enhanced Conversions. `set user_data`
+      // MUST come before the conversion event so gtag.js attaches the
+      // PII (hashed client-side before transmission) to the conversion.
+      // Phone is normalised to E.164 (+1XXXXXXXXXX) — the form accepts
+      // any formatting, but Google rejects non-E.164 silently.
+      const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
+      const adsLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL;
+      if (
+        adsId &&
+        adsLabel &&
+        typeof window !== "undefined" &&
+        typeof window.gtag === "function"
+      ) {
+        window.gtag("set", "user_data", {
+          email: parsed.data.email || undefined,
+          phone_number: toE164Us(parsed.data.phone),
+          address: {
+            first_name: firstName,
+            last_name: lastName,
+            postal_code: parsed.data.zip || undefined,
+          },
+        });
+        window.gtag("event", "conversion", {
+          send_to: `${adsId}/${adsLabel}`,
+          value: 1.0,
+          currency: "USD",
+        });
+      }
     } catch {
       setState({
         status: "error",
@@ -450,6 +481,18 @@ export function LeadForm({
 /** Tiny local cn so this component file has zero shared-state imports. */
 function cnLocal(...parts: Array<string | undefined | false | null>): string {
   return parts.filter(Boolean).join(" ");
+}
+
+/** Best-effort US E.164 normalisation for the Google Ads Enhanced
+ *  Conversions `phone_number` field. Returns `undefined` when the
+ *  digit count doesn't fit a US (10) or US-with-country-code (11
+ *  starting with 1) pattern, so we send nothing rather than something
+ *  Google will silently reject. */
+function toE164Us(input: string): string | undefined {
+  const digits = input.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return undefined;
 }
 
 function FormRow({
