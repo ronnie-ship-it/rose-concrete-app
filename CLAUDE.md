@@ -173,3 +173,14 @@ These apply to every refactor PR (A–Z).
 - `docs/refactor/phase-3-screen-specs.md` — 14 PRs (every screen)
 - `docs/refactor/crew-app-audit.md` — original audit (Apr 26)
 - `docs/refactor/jobber-deep-ui-audit.md` — Jobber UI structural reference
+
+---
+
+## Known toolchain issues
+
+Tracked here so they don't get rediscovered every session. Each entry
+is one line — paste a follow-up PR link next to it when fixed.
+
+- `next lint` removed in Next 16; package.json script still references it.
+  Fix: replace with `eslint .` + add `eslint.config.mjs` (flat config) in
+  a follow-up PR.

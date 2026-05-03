@@ -1,137 +1,40 @@
 import { requireRole } from "@/lib/auth";
-import { createClientFromCrewAction } from "../actions";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
-import { ContactImportButton } from "@/components/contact-import-button";
-import {
-  CrewCreateChrome,
-  FieldInput,
-  AddLink,
-  SectionSpacer,
-} from "../chrome";
+import { NewClientForm } from "./form";
 
 export const metadata = { title: "New client — Rose Concrete" };
 
+type SearchParams = Promise<{ error?: string }>;
+
 /**
- * Crew "New client" — Jobber-mobile parity.
+ * Crew "New client" — Phase 1.5 PR-A1 hotfix rewrite.
  *
- * Form structure from the screenshot:
- *   - "Add From Contacts" outlined picker button
- *   - First name / Last name inputs
- *   - "Add Company Name" green link
- *   - "Add Phone Number" green link
- *   - "Add Email" green link
- *   - "Add Lead Source" green link
- *   - "Add Additional Info" green link
- *   - Property address input
- *   - Bottom: green "Save"
+ * Architectural changes from the previous implementation:
  *
- * The "Add foo" links unhide their corresponding text input — kept
- * simple here by always rendering the input and using the green link
- * row as a label hint when the field is empty.
+ *   - Uses the NEW <CreateFormShell> from app/crew/_components/.
+ *     The old shell at app/crew/create/chrome.tsx renders a sticky
+ *     footer; the new shell does NOT. The Save button is inline at
+ *     the bottom of the form scroll. (Other 5 Create forms still use
+ *     the old chrome — they'll switch in PR-Y per the brief.)
+ *
+ *   - Uses the NEW <TextField> + <RevealRow> from app/crew/_components/.
+ *     TextField has the iOS-Safari Bug-2 fixes (16 px font, navy
+ *     caret, near-black text-fill, 48 px min-height) baked in.
+ *
+ *   - Default-show fields: First name, Last name, Property address.
+ *     Tap-to-reveal rows: Phone, Email, Company Name, Lead Source,
+ *     Additional Info. Matches the Day 2 §C.1 collapsed-until-tapped
+ *     pattern.
+ *
+ * The actual reveal state + form submission lives in <NewClientForm>
+ * (client component). This page is a thin server wrapper that does
+ * the auth gate.
  */
-export default async function CrewNewClient() {
+export default async function CrewNewClient({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   await requireRole(["crew", "admin", "office"]);
-
-  return (
-    <CrewCreateChrome
-      title="New client"
-      saveLabel="Save"
-      formAction={createClientFromCrewAction}
-    >
-      {/* Add from Contacts — opens the device's native contact picker
-          (Android Chrome's `navigator.contacts.select`) and pre-fills
-          first/last name + phone + email. iOS Safari doesn't support
-          the API; the button shows an "unavailable" state there
-          rather than disappearing entirely so the form layout stays
-          consistent with the Jobber screenshot. */}
-      <div className="pt-2">
-        <ContactImportButton />
-      </div>
-
-      {/* First / Last name */}
-      <div className="px-4 py-2">
-        <div className="overflow-hidden rounded-md border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
-          <input
-            name="first_name"
-            type="text"
-            placeholder="First name"
-            className="block w-full border-b border-neutral-200 px-3 py-3 text-sm text-[#1a2332] placeholder:text-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-          />
-          <input
-            name="last_name"
-            type="text"
-            placeholder="Last name"
-            className="block w-full px-3 py-3 text-sm text-[#1a2332] placeholder:text-neutral-400 focus:outline-none dark:bg-neutral-800 dark:text-white"
-          />
-        </div>
-      </div>
-
-      {/* Inline secondary fields — Jobber's screenshot shows these as
-          green links; we render the input rows but tag them with the
-          green "Add foo" affordance until the user types. Pragmatic
-          compromise: just always show editable inputs styled as gray
-          rows; the field placeholder doubles as the "Add foo" label. */}
-      <AddLink
-        href="#company"
-        icon={
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="3" width="16" height="18" rx="1" />
-            <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
-          </svg>
-        }
-        label="Add Company Name"
-      />
-      <FieldInput name="company" placeholder="Company name (optional)" />
-
-      <AddLink
-        href="#phone"
-        icon={
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.8 12.8 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.8 12.8 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-          </svg>
-        }
-        label="Add Phone Number"
-      />
-      <FieldInput name="phone" type="tel" placeholder="(555) 123-4567" />
-
-      <AddLink
-        href="#email"
-        icon={
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <path d="M3 7l9 6 9-6" />
-          </svg>
-        }
-        label="Add Email"
-      />
-      <FieldInput name="email" type="email" placeholder="name@example.com" />
-
-      <AddLink
-        href="#lead-source"
-        icon={
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18M3 12h12M3 18h6" />
-          </svg>
-        }
-        label="Add Lead Source"
-      />
-      <FieldInput name="lead_source" placeholder="e.g., Google, Referral, Yelp" />
-
-      <SectionSpacer />
-
-      {/* Property address — Google Places autocomplete fills in
-          the four address fields automatically when you pick a
-          suggestion. Falls back to plain editable inputs when the
-          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY isn't set. */}
-      <div className="px-4 py-3">
-        <AddressAutocomplete
-          streetName="address"
-          cityName="city"
-          stateName="state"
-          postalCodeName="postal_code"
-          placeholder="Property address"
-        />
-      </div>
-    </CrewCreateChrome>
-  );
+  const sp = await searchParams;
+  return <NewClientForm errorFromUrl={sp.error ?? null} />;
 }
