@@ -22,8 +22,8 @@ import {
  * its TODO banners, "How we run jobs" / "Why concrete" / Licenses
  * blocks. Spec lives in duda-site-content/WEBSITE_COPY_DRAFT.md.
  *
- * Page photo (rose-shirt-crew.jpg) shows Thomas Rose with the crew on
- * a job site — also used in the homepage Owner's note section.
+ * Page photo (ronnie-and-lacy.jpg) — Thomas Rose with his wife Lacy.
+ * Same file is reused in the homepage Owner's note section.
  */
 
 const TITLE =
@@ -96,8 +96,8 @@ export default function AboutPage() {
         <div className="mx-auto grid max-w-5xl gap-10 px-4 sm:px-6 md:grid-cols-[2fr,3fr] md:items-center md:gap-12">
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-brand-100 shadow-sm">
             <Image
-              src="/images/rose-shirt-crew.jpg"
-              alt="Thomas Rose with the Rose Concrete crew on a San Diego job site"
+              src="/images/ronnie-and-lacy.jpg"
+              alt="Thomas Rose, owner of Rose Concrete & Development, with his wife Lacy"
               fill
               sizes="(min-width: 768px) 40vw, 100vw"
               className="object-cover"

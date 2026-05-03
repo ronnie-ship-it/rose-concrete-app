@@ -40,6 +40,11 @@ export const EMAIL_HREF = `mailto:${EMAIL}`;
  */
 export const GOOGLE_REVIEW_URL = "https://g.page/r/CdOSm81RQCO_EBM/review";
 
+/** Public-facing social profiles. Surfaced in the utility bar + footer. */
+export const FACEBOOK_URL =
+  "https://www.facebook.com/profile.php?id=61558628922038";
+export const INSTAGRAM_URL = "https://www.instagram.com/roseconcretesd/";
+
 export const LICENSE = "CA License #1130763";
 export const TRUST_SIGNALS = [
   LICENSE,
