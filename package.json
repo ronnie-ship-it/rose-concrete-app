@@ -14,6 +14,7 @@
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "import:jobber": "tsx scripts/import-jobber.ts",
+    "test": "node --import tsx --test lib/__tests__/*.test.ts",
     "ship": "node scripts/ship.mjs"
   },
   "dependencies": {

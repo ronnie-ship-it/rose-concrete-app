@@ -43,6 +43,9 @@ export type OpenPhoneSendResult =
   | { ok: true; external_id: string | null }
   | { ok: false; error: string; skip: boolean };
 
+/** Slim contact summary the suppression gate cares about. `null` = no match. */
+export type OpenPhoneContactSummary = { id: string } | null;
+
 export type OpenPhoneAdapter = {
   listCallsForPhone(phone: string): Promise<OpenPhoneCall[]>;
   listMessagesForPhone(phone: string): Promise<OpenPhoneMessage[]>;
@@ -61,6 +64,15 @@ export type OpenPhoneAdapter = {
    * — the caller should treat the send as a soft-skip, not a hard failure.
    */
   sendMessage(phone: string, body: string): Promise<OpenPhoneSendResult>;
+  /**
+   * Look up a contact by phone number. Used by the known-caller suppression
+   * gate to detect numbers Ronnie has saved on his phone but never converted
+   * into a Supabase client. Stub returns null. Real adapter throws on
+   * transport errors so the gate's fail-open semantics kick in.
+   */
+  findContactByPhone(phone: string): Promise<OpenPhoneContactSummary>;
+  /** True when this is the real REST adapter (vs. the stub). Lets callers skip the contacts probe when there's no API key. */
+  isConfigured(): boolean;
 };
 
 export function createStubOpenPhone(): OpenPhoneAdapter {
@@ -89,6 +101,12 @@ export function createStubOpenPhone(): OpenPhoneAdapter {
         error: "OpenPhone MCP not wired yet.",
         skip: true,
       };
+    },
+    async findContactByPhone() {
+      return null;
+    },
+    isConfigured() {
+      return false;
     },
   };
 }
@@ -380,6 +398,26 @@ export function createOpenPhoneRestAdapter(apiKey: string): OpenPhoneAdapter {
         data?: { id?: string };
       };
       return { ok: true, external_id: json.id ?? json.data?.id ?? null };
+    },
+    async findContactByPhone(phone) {
+      const normalized = normalizePhone(phone);
+      if (!normalized) return null;
+      // OpenPhone's contacts endpoint accepts repeated `phoneNumbers[]`
+      // params. We only need to know if *any* contact exists for this
+      // number, so first hit wins. Throws on transport error so the
+      // suppression gate's allSettled wrapper catches it (fail-open).
+      const params = new URLSearchParams();
+      params.append("phoneNumbers[]", normalized);
+      params.set("maxResults", "1");
+      const res = await openPhoneFetch<{ id: string }>(
+        `/contacts?${params.toString()}`,
+        apiKey,
+      );
+      const first = (res.data ?? res.results ?? [])[0];
+      return first ? { id: first.id } : null;
+    },
+    isConfigured() {
+      return true;
     },
   };
 }
@@ -752,6 +790,32 @@ async function buildClientLookup(supabase: SupabaseClient): Promise<{
     phone: string,
   ): Promise<{ clientId: string | null; leadCreated: boolean }> {
     const normalized = normalizePhone(phone) ?? phone;
+
+    // Known-caller suppression gate. Repeat callers (numbers Ronnie has
+    // talked to before, has saved in OpenPhone, or that already live in
+    // Jobber) trigger an early return with `leadCreated: false`. The
+    // `communications` row still gets written by the caller in
+    // `syncOpenPhoneCalls`, attached to `clientId` when one was found.
+    // See lib/known-caller.ts and fix-brief-resend-call-emails.md.
+    const { isKnownInboundCaller } = await import("@/lib/known-caller");
+    const { getValidJobberAccessToken } = await import("@/lib/jobber-api");
+    const jobberToken = await getValidJobberAccessToken(supabase).catch(
+      () => null,
+    );
+    const known = await isKnownInboundCaller(normalized, {
+      supabase,
+      openphone: getOpenPhoneAdapter(),
+      jobberToken,
+    });
+    if (known.known) {
+      console.info("[openphone] suppressing new-lead for known caller", {
+        phone: normalized,
+        sources: known.sources,
+        errors: known.errors,
+      });
+      return { clientId: known.clientId, leadCreated: false };
+    }
+
     // Lazy import — `lib/leads.ts` imports `lib/openphone.ts`, so a
     // top-level import would create a cycle.
     const { createLead } = await import("@/lib/leads");

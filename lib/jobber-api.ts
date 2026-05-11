@@ -15,6 +15,9 @@
  *     action stays small and readable.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { phoneMatchVariants } from "@/lib/openphone";
+
 const JOBBER_GRAPHQL_URL = "https://api.getjobber.com/api/graphql";
 const JOBBER_AUTHORIZE_URL = "https://api.getjobber.com/api/oauth/authorize";
 const JOBBER_TOKEN_URL = "https://api.getjobber.com/api/oauth/token";
@@ -529,4 +532,137 @@ export async function downloadAttachment(
       error: err instanceof Error ? err.message : "Download failed.",
     };
   }
+}
+
+// ---------- known-caller helpers (used by lib/known-caller.ts) ----------
+
+/**
+ * Pull the current Jobber access token from `jobber_oauth_tokens`, refreshing
+ * via the refresh_token if the access_token expires within 60 s. Returns
+ * `null` when Jobber isn't connected at all OR a refresh fails — the
+ * suppression gate treats `null` as "skip the Jobber probe, fail-open" so
+ * call processing never blocks on an unreachable Jobber.
+ *
+ * Mirrors the `ensureFreshAccessToken()` logic in the import action; lives
+ * here so non-import callers (the OpenPhone webhook) can reuse it without
+ * an awkward cross-import into `app/dashboard/settings/import/jobber-api/
+ * actions.ts`.
+ */
+export async function getValidJobberAccessToken(
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("jobber_oauth_tokens")
+    .select(
+      "id, client_id, client_secret, access_token, refresh_token, access_expires_at",
+    )
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as {
+    id: string;
+    client_id: string | null;
+    client_secret: string | null;
+    access_token: string | null;
+    refresh_token: string | null;
+    access_expires_at: string | null;
+  };
+  if (
+    !row.access_token ||
+    !row.refresh_token ||
+    !row.access_expires_at ||
+    !row.client_id ||
+    !row.client_secret
+  ) {
+    return null;
+  }
+  const expiresAt = new Date(row.access_expires_at).getTime();
+  if (expiresAt - Date.now() > 60_000) {
+    return row.access_token;
+  }
+  const refreshed = await refreshJobberTokens({
+    clientId: row.client_id,
+    clientSecret: row.client_secret,
+    refreshToken: row.refresh_token,
+  });
+  if (!refreshed.ok) return null;
+  // Persist the rotated tokens so other callers (notably the import tick)
+  // don't waste a refresh next time.
+  await supabase
+    .from("jobber_oauth_tokens")
+    .update({
+      access_token: refreshed.tokens.access_token,
+      refresh_token: refreshed.tokens.refresh_token,
+      access_expires_at: refreshed.tokens.expires_at,
+      last_error: null,
+    })
+    .eq("id", row.id);
+  return refreshed.tokens.access_token;
+}
+
+/**
+ * Phone-only known-caller lookup against Jobber. The OpenPhone webhook
+ * uses this to detect callers who exist in Jobber but haven't landed in
+ * Supabase `clients` yet (e.g. clients added in Jobber after the last
+ * bulk import).
+ *
+ * Jobber's `clients(searchTerm:)` does substring matching across name,
+ * phone, and email — which means a fuzzy match can return a client whose
+ * phoneNumbers don't actually include the number we searched for. So we
+ * defensively verify each candidate's `phoneNumbers[].number` against
+ * `phoneMatchVariants(phone)` before declaring a match. Specifically: a
+ * `searchTerm` of `+16195379408` may return a client whose stored phone
+ * is `(619) 537-9408`; both reduce to the same set of variants and we
+ * still want that to count as a match.
+ *
+ * Returns `false` on any GraphQL error so the gate fails open.
+ */
+export async function findJobberClientByPhone(
+  token: string,
+  phone: string,
+): Promise<boolean> {
+  const variantSet = new Set(phoneMatchVariants(phone));
+  if (variantSet.size === 0) return false;
+
+  // Search by E.164 if we have it, else by the raw input. Either gives
+  // Jobber enough to find the row; the verify step below catches any
+  // fuzzy collateral.
+  const searchTerm = Array.from(variantSet)[0];
+
+  const q = `
+    query FindClientByPhone($q: String!) {
+      clients(first: 5, searchTerm: $q) {
+        edges {
+          node {
+            id
+            phoneNumbers { number }
+          }
+        }
+      }
+    }
+  `;
+  type Raw = {
+    clients: {
+      edges: Array<{
+        node: {
+          id: string;
+          phoneNumbers: Array<{ number: string }> | null;
+        };
+      }>;
+    };
+  };
+  const res = await jobberGraphQL<Raw>(token, q, { q: searchTerm });
+  if (!res.ok) return false;
+
+  for (const edge of res.data.clients.edges) {
+    for (const pn of edge.node.phoneNumbers ?? []) {
+      // Re-derive variants from Jobber's returned string so format
+      // drift between us and them doesn't cause false negatives.
+      for (const v of phoneMatchVariants(pn.number)) {
+        if (variantSet.has(v)) return true;
+      }
+    }
+  }
+  return false;
 }
