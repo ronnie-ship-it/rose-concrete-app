@@ -19,7 +19,6 @@ const SOURCE_OPTIONS = [
   "",
   "phone",
   "web",
-  "poptin",
   "thumbtack",
   "referral",
   "walk_in",
