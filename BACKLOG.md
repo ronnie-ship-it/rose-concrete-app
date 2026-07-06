@@ -35,9 +35,25 @@ Bigger audit landed today too (see Website_Improvement_Plan doc in
 Cowork outputs): placeholder reviews still live sitewide with visible
 "replace with your own" caption, Safe Sidewalks Program (ended
 2026-06-30) still referenced ~46 times in lib/marketing, pricing floor
-on site says $17.22/sf vs current $22–26/sf policy, service-page title
-template doubles "| Rose Concrete". Real-photo rollout starting from
-Ronnie's Google Drive (sidewalks folder first).
+on site says $17.22/sf vs current $22–26/sf policy.
+
+Also in this round:
+- FIXED service-page title doubling: `services/[slug]/page.tsx`
+  generateMetadata now returns bare `service.h1` (layout template
+  appends "| Rose Concrete"). OG title keeps the explicit suffix.
+- NEW curated sidewalk gallery: 8 photos hand-picked from Ronnie's
+  141-photo Google Photos album ("Rose Concrete - Sidewalks"),
+  EXIF/GPS stripped, resized to 1600px, saved in
+  `public/images/sidewalks/`. Wired via new optional
+  `Service.staticGallery` field (lib/marketing/services.ts) + a
+  `StaticGallery` component in `services/[slug]/page.tsx` that
+  renders instead of the project_media query when present. Same
+  pattern is ready for driveways/patios/etc. when Ronnie fills
+  those albums.
+- Google Photos albums exist for the other services (Driveways,
+  Patios, Walkways, Pool Decks, Pickleball, Hangars/Commercial,
+  Crew and Process) but are empty as of today — repeat this flow
+  as they fill.
 
 ---
 

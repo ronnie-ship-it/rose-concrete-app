@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LeadForm } from "@/components/marketing/lead-form";
@@ -67,7 +68,9 @@ export async function generateMetadata({
   if (!service) return {};
   const url = `${SITE_ORIGIN}/services/${service.slug}`;
   return {
-    title: `${service.h1} | Rose Concrete`,
+    // Bare h1 — the (marketing) layout's title.template appends
+    // "| Rose Concrete". Including it here doubled the brand suffix.
+    title: service.h1,
     description: service.metaDescription,
     alternates: { canonical: url },
     openGraph: {
@@ -228,17 +231,28 @@ export default async function ServicePage({
         />
       </Section>
 
-      {/* Recent projects — filtered to this service's enum value(s).
-          Combined pages like walkways-sidewalks pass an array via
-          `serviceTypesForGallery` so all flavors of the work surface. */}
+      {/* Recent projects. When the service config carries a curated
+          staticGallery (hand-picked photos in /public/images/), render
+          that — same pattern as the home-page grid. Otherwise fall back
+          to the project_media query filtered to this service's enum
+          value(s). Combined pages like walkways-sidewalks pass an array
+          via `serviceTypesForGallery` so all flavors of the work surface. */}
       <Section tone="cream">
-        <RecentProjects
-          heading={`Recent ${service.name.toLowerCase()} work`}
-          sub={`Real ${service.name.toLowerCase()} work poured by Ronnie's crew across San Diego County.`}
-          serviceTypes={
-            service.serviceTypesForGallery ?? [service.serviceTypeForForm]
-          }
-        />
+        {service.staticGallery ? (
+          <StaticGallery
+            heading={`Recent ${service.name.toLowerCase()} work`}
+            sub={`Real ${service.name.toLowerCase()} work poured by Ronnie's crew across San Diego County.`}
+            photos={service.staticGallery}
+          />
+        ) : (
+          <RecentProjects
+            heading={`Recent ${service.name.toLowerCase()} work`}
+            sub={`Real ${service.name.toLowerCase()} work poured by Ronnie's crew across San Diego County.`}
+            serviceTypes={
+              service.serviceTypesForGallery ?? [service.serviceTypeForForm]
+            }
+          />
+        )}
       </Section>
 
       {/* Service areas */}
@@ -285,5 +299,52 @@ export default async function ServicePage({
 
       <FinalCallCta />
     </>
+  );
+}
+
+/**
+ * Curated static photo grid — mirrors the home-page RecentProjects
+ * grid (fixed aspect, next/image, 3-col on lg+). Rendered when the
+ * service config provides `staticGallery`.
+ */
+function StaticGallery({
+  heading,
+  sub,
+  photos,
+}: {
+  heading: string;
+  sub: string;
+  photos: readonly { src: string; alt: string }[];
+}) {
+  return (
+    <div>
+      <header className="mb-6 max-w-3xl sm:mb-8">
+        <p className="text-xs font-bold uppercase tracking-wider text-accent-600">
+          Recent work · 2025–2026
+        </p>
+        <h2 className="mt-1 text-2xl font-extrabold text-brand-900 sm:text-3xl">
+          {heading}
+        </h2>
+        <p className="mt-2 text-base text-brand-700/80">{sub}</p>
+      </header>
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {photos.map((p) => (
+          <li
+            key={p.src}
+            className="overflow-hidden rounded-xl border border-brand-100 bg-white shadow-sm"
+          >
+            <div className="relative aspect-[4/3]">
+              <Image
+                src={p.src}
+                alt={p.alt}
+                fill
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

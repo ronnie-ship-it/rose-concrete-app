@@ -73,6 +73,13 @@ export type Service = {
    * surface one of the three.
    */
   serviceTypesForGallery?: readonly ServiceType[];
+  /**
+   * Curated static gallery photos for this service page. When present,
+   * the page renders these from /public/images/ instead of querying
+   * the project_media gallery — same pattern as the home-page grid.
+   * Use for services where we have a strong hand-picked photo set.
+   */
+  staticGallery?: readonly { src: string; alt: string }[];
 };
 
 // ─── Driveways ──────────────────────────────────────────────────────────
@@ -333,6 +340,43 @@ const walkways: Service = {
   // projects. Walkway showcases and Safe Sidewalks Program work both
   // belong here.
   serviceTypesForGallery: ["walkway", "sidewalk", "safe_sidewalks_program"],
+  // Hand-picked from Ronnie's July 2026 sidewalk photo drop (Google
+  // Photos album "Rose Concrete - Sidewalks"). EXIF/GPS stripped,
+  // resized to 1600px, saved under /public/images/sidewalks/.
+  staticGallery: [
+    {
+      src: "/images/sidewalks/sidewalk-replacement-landscaped-walkway-san-diego.jpg",
+      alt: "Finished concrete walkway between landscaped garden beds in San Diego",
+    },
+    {
+      src: "/images/sidewalks/new-concrete-walkways-turf-san-diego.jpg",
+      alt: "Two new concrete walkways bordered by fresh artificial turf",
+    },
+    {
+      src: "/images/sidewalks/concrete-garden-walkway-san-diego.jpg",
+      alt: "Concrete garden walkway winding past boulders and succulents",
+    },
+    {
+      src: "/images/sidewalks/curved-sidewalk-new-pour-san-diego.jpg",
+      alt: "Freshly poured curved concrete sidewalk wrapping a street corner",
+    },
+    {
+      src: "/images/sidewalks/concrete-sidewalk-panels-san-diego.jpg",
+      alt: "Bright new concrete sidewalk panels between white garden walls",
+    },
+    {
+      src: "/images/sidewalks/finished-concrete-sidewalk-broom-finish-san-diego.jpg",
+      alt: "Broom-finished concrete sidewalk in dappled afternoon shade",
+    },
+    {
+      src: "/images/sidewalks/sidewalk-retaining-wall-san-diego.jpg",
+      alt: "New concrete sidewalk poured alongside a block retaining wall",
+    },
+    {
+      src: "/images/sidewalks/city-spec-sidewalk-panel-replacement-san-diego.jpg",
+      alt: "City-spec sidewalk panel replacement with safety cones during cure",
+    },
+  ],
 };
 
 // ─── Decorative Concrete ────────────────────────────────────────────────
