@@ -184,7 +184,7 @@ export function MarketingFooter() {
             >
               {PHONE_DISPLAY}
             </a>
-            <p className="mt-1 text-xs text-cream-50/70">7 days · 7am–7pm</p>
+            <p className="mt-1 text-xs text-cream-50/70">Mon–Fri 7am–5pm · Sat 8am–12pm</p>
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-accent-300">

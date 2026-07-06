@@ -52,7 +52,7 @@ export function FinalCallCta({
             >
               {PHONE_DISPLAY}
             </a>
-            <p className="text-sm text-cream-50/70">7 days · 7am–7pm</p>
+            <p className="text-sm text-cream-50/70">Mon–Fri 7am–5pm · Sat 8am–12pm</p>
             <div className="flex flex-wrap gap-3">
               <a
                 href={PHONE_TEL_HREF}

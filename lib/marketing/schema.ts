@@ -87,11 +87,15 @@ export function localBusinessJsonLd() {
           "Wednesday",
           "Thursday",
           "Friday",
-          "Saturday",
-          "Sunday",
         ],
         opens: "07:00",
-        closes: "19:00",
+        closes: "17:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Saturday"],
+        opens: "08:00",
+        closes: "12:00",
       },
     ],
     sameAs: [

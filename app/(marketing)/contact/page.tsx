@@ -103,7 +103,7 @@ export default function ContactPage() {
                   {PHONE_DISPLAY}
                 </a>
                 <p className="mt-1 text-sm text-brand-700/80">
-                  7 days · 7am–7pm · Most quotes returned same-week
+                  Mon–Fri 7am–5pm · Sat 8am–12pm · Most quotes returned same-week
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
@@ -203,7 +203,7 @@ export default function ContactPage() {
         <SectionHeader
           eyebrow="Hours"
           title="When you can reach us"
-          sub="On the phone 7 days a week. Quotes happen during the week; emergency callbacks any day."
+          sub="On the phone Monday through Saturday. Quotes happen during the week; leave a message on Sunday and we'll call you back Monday."
         />
         <div className="overflow-hidden rounded-xl border border-brand-100">
           <table className="w-full text-left text-sm">
@@ -222,9 +222,9 @@ export default function ContactPage() {
             </thead>
             <tbody className="divide-y divide-brand-100 bg-white">
               {[
-                ["Mon–Fri", "7am – 7pm", "By appointment"],
-                ["Saturday", "8am – 5pm", "By appointment"],
-                ["Sunday", "Limited", "Emergency only"],
+                ["Mon–Fri", "7am – 5pm", "By appointment"],
+                ["Saturday", "8am – 12pm", "By appointment"],
+                ["Sunday", "Closed", "—"],
               ].map(([day, phone, onsite]) => (
                 <tr key={day}>
                   <td className="px-4 py-3 font-bold text-brand-900">{day}</td>
