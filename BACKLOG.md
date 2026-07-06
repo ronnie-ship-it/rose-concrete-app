@@ -50,10 +50,14 @@ Also in this round:
   renders instead of the project_media query when present. Same
   pattern is ready for driveways/patios/etc. when Ronnie fills
   those albums.
-- Google Photos albums exist for the other services (Driveways,
-  Patios, Walkways, Pool Decks, Pickleball, Hangars/Commercial,
-  Crew and Process) but are empty as of today — repeat this flow
-  as they fill.
+- Driveways gallery added same-day: 8 photos from the "Rose Concrete
+  - Driveways" album (26 items), same pipeline (EXIF/GPS stripped,
+  1600px, /public/images/driveways/), wired via `staticGallery` on
+  the driveways service. Pickleball album skipped — only 2
+  near-duplicate shots of a court already on the homepage.
+- Remaining empty albums: Patios, Walkways, Pool Decks,
+  Hangars/Commercial, Crew and Process — repeat this flow as
+  Ronnie fills them.
 
 ---
 

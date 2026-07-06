@@ -165,6 +165,43 @@ const driveways: Service = {
     },
   ],
   serviceTypeForForm: "driveway",
+  // Hand-picked from Ronnie's July 2026 driveway photo drop (Google
+  // Photos album "Rose Concrete - Driveways"). EXIF/GPS stripped,
+  // resized, saved under /public/images/driveways/.
+  staticGallery: [
+    {
+      src: "/images/driveways/concrete-driveway-replacement-san-diego.jpg",
+      alt: "Finished concrete driveway replacement at a San Diego home",
+    },
+    {
+      src: "/images/driveways/aerial-concrete-driveway-multi-unit-san-diego.jpg",
+      alt: "Aerial view of a new concrete driveway at a multi-unit property",
+    },
+    {
+      src: "/images/driveways/long-concrete-driveway-garage-san-diego.jpg",
+      alt: "Long concrete driveway leading to a detached garage",
+    },
+    {
+      src: "/images/driveways/fresh-poured-driveway-cure-san-diego.jpg",
+      alt: "Freshly poured concrete driveway curing behind safety cones",
+    },
+    {
+      src: "/images/driveways/concrete-driveway-parking-pad-san-diego.jpg",
+      alt: "Wide concrete driveway and parking pad with clean broom finish",
+    },
+    {
+      src: "/images/driveways/side-yard-concrete-driveway-san-diego.jpg",
+      alt: "New side-yard concrete driveway between two San Diego homes",
+    },
+    {
+      src: "/images/driveways/finished-concrete-driveway-palms-san-diego.jpg",
+      alt: "Completed concrete driveway framed by palm trees",
+    },
+    {
+      src: "/images/driveways/new-driveway-pour-day-san-diego.jpg",
+      alt: "New concrete driveway on pour day with forms still set",
+    },
+  ],
 };
 
 // ─── Patios ─────────────────────────────────────────────────────────────
