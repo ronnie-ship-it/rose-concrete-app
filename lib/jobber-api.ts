@@ -222,7 +222,7 @@ export type JobberFetchError = {
 
 type GraphQLError = { message: string; path?: string[] };
 
-async function jobberGraphQL<T>(
+export async function jobberGraphQL<T>(
   token: string,
   query: string,
   variables: Record<string, unknown>

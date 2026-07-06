@@ -2,6 +2,63 @@
 
 ---
 
+## ☕ WAKE-UP NOTE — round 30 (2026-07-05, crew rebuild phase 1: Jobber sync)
+
+`tsc --noEmit` passes clean. **New migration:** `042_jobber_sync.sql`
+(jobber_id columns + visits soft-delete + jobber_sync_runs log) — run
+`npm run migrate` before deploy.
+
+Branch `crew-rebuild/phase-1-sync`. New: `lib/jobber-sync.ts` (one-way
+Jobber → app visit/job/client sync, ±14-day window, idempotent on
+jobber_id), cron `app/api/cron/jobber-sync/route.ts` every 15 min in
+vercel.json. Jobber wins schedule fields; app owns photos/notes/status.
+Soft-deletes visits that vanish from Jobber; never touches completed.
+See docs/crew-app-rebuild-brief.md. Next: phase 2 crew screens to the
+Jobber-mobile audit patterns.
+
+---
+
+## ☕ WAKE-UP NOTE — round 29 (2026-07-05, business hours synced to GBP)
+
+`tsc --noEmit` passes clean. No new SQL migrations.
+
+Ronnie updated his Google Business Profile hours (verified on GBP
+directly: Mon–Fri 7am–5pm, Sat 8am–12pm, Sun closed). Site previously
+said "7 days · 7am–7pm" everywhere. Updated four spots to match:
+`app/(marketing)/contact/page.tsx` (phone card line, hours-section sub
+copy, hours table), `components/marketing/final-cta.tsx`,
+`components/marketing/footer.tsx`, and
+`lib/marketing/schema.ts` `openingHoursSpecification` (now two blocks:
+Mon–Fri 07:00–17:00, Sat 08:00–12:00).
+
+Bigger audit landed today too (see Website_Improvement_Plan doc in
+Cowork outputs): placeholder reviews still live sitewide with visible
+"replace with your own" caption, Safe Sidewalks Program (ended
+2026-06-30) still referenced ~46 times in lib/marketing, pricing floor
+on site says $17.22/sf vs current $22–26/sf policy, service-page title
+template doubles "| Rose Concrete". Real-photo rollout starting from
+Ronnie's Google Drive (sidewalks folder first).
+
+---
+
+## ☕ WAKE-UP NOTE — round 28 (2026-07-02, Poptin webhook removed)
+
+`tsc --noEmit` passes clean. No new SQL migrations.
+
+Deleted `app/api/webhooks/poptin/route.ts` and removed "poptin" from
+the client-form SOURCE_OPTIONS. Poptin was QuantumHawk's form widget;
+both are gone (QH ended 2026-06-29), and the webhook bypassed
+`createLead()` anyway (no SMS, no draft quote, no owner email).
+Existing DB rows with `source = 'poptin'` are untouched — display
+only, no migration needed. `POPTIN_WEBHOOK_SECRET` can be deleted
+from Vercel env whenever convenient.
+
+Still open from fix-brief-resend-call-emails.md ops items: run the
+one-time Jobber bulk import at `/dashboard/settings/import/jobber-api`,
+and set `LEAD_NOTIFICATION_FROM` on Vercel to a branded address.
+
+---
+
 ## ☕ WAKE-UP NOTE — round 27 (2026-04-26, password-based login)
 
 `tsc --noEmit` passes clean. **No new SQL migrations** — Supabase
