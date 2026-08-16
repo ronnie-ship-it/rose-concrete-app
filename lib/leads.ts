@@ -337,8 +337,18 @@ export async function createLead(
   //    delay the OpenPhone send (and vice-versa). Each is wrapped in its
   //    own try/catch so one failure can't poison the others.
   const firstName = (name ?? "").split(/\s+/)[0] || "there";
-  const ownerEmail =
-    process.env.LEAD_NOTIFICATION_EMAIL || "ronnie@sandiegoconcrete.ai";
+  // Owner notification recipients. LEAD_NOTIFICATION_EMAIL may hold a
+  // comma-separated list; Alex is always included (added 2026-08-15 so
+  // every website lead lands in her inbox too).
+  const ownerEmails = (
+    process.env.LEAD_NOTIFICATION_EMAIL || "ronnie@sandiegoconcrete.ai"
+  )
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!ownerEmails.includes("alex@sandiegoconcrete.ai")) {
+    ownerEmails.push("alex@sandiegoconcrete.ai");
+  }
 
   // Auto-text from Ronnie's published business line. Copy is fixed here
   // so every channel (marketing site, /book form, webhook) sounds the
@@ -351,16 +361,15 @@ export async function createLead(
           const adapter = getOpenPhoneAdapter();
           const res = await adapter.sendMessage(
             phone,
-            // ~330 chars — bills as ~3 SMS segments per send. OpenPhone
+            // ~290 chars — bills as ~2 SMS segments per send. OpenPhone
             // concatenates on the recipient side, so the lead sees one
-            // message. Mentions Roger (foreman) as fallback so urgent
-            // calls still land somewhere when Ronnie is on a job site.
+            // message. (Roger reference removed 2026-08-15 — no longer
+            // with the company.)
             `Hi ${firstName}, this is Ronnie with Rose Concrete. Got your ` +
               `request — I'll call as soon as I can. If you need to reach me ` +
-              `sooner, my number is (619) 537-9408. If I'm tied up, feel ` +
-              `free to call my foreman Roger at (858) 943-0758. We'll also ` +
-              `have a few other questions to get you a quote — would you ` +
-              `mind sharing some photos of the project?`,
+              `sooner, my number is (619) 537-9408. In the meantime, if you ` +
+              `haven't already, go ahead and send over some photos and a ` +
+              `brief description of the project.`,
           );
           if (!res.ok) {
             // Surface the OpenPhone error in the dev log so the next
@@ -465,15 +474,21 @@ export async function createLead(
       ]
         .filter(Boolean)
         .join(" ");
-      const res = await emailAdapter.send({
-        to: ownerEmail,
-        subject: subjectBits.trim(),
-        text,
-        html,
-        replyTo: email ?? undefined,
-        tag: "lead_notification",
-      });
-      return res.ok;
+      // One send per recipient (the adapter takes a single address).
+      // ok if at least one landed so the lead still flips to "contacted".
+      const results = await Promise.all(
+        ownerEmails.map((addr) =>
+          emailAdapter.send({
+            to: addr,
+            subject: subjectBits.trim(),
+            text,
+            html,
+            replyTo: email ?? undefined,
+            tag: "lead_notification",
+          }),
+        ),
+      );
+      return results.some((r) => r.ok);
     } catch (err) {
       console.error("[createLead] owner-notification email failed", err);
       return false;
