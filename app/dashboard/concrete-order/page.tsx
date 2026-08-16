@@ -52,7 +52,7 @@ export default async function ConcreteOrderPage() {
     <div className="space-y-6">
       <PageHeader
         title="Concrete order"
-        subtitle="Group text Willy, Roger, and Michael (or whoever you pick) with pour details. Saves a record + fans out via OpenPhone."
+        subtitle="Group text Willy and Michael (or whoever you pick) with pour details. Saves a record + fans out via OpenPhone."
       />
 
       <OrderForm
