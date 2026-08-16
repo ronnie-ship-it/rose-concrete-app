@@ -119,7 +119,7 @@ const DEFAULT_TEMPLATES: Record<
 > = {
   demo: `Hey Willy — demo job for {client_name} at {address} {dates}. Scope: {service_type}. Bring the usual demo kit; let me know if you need extra manpower.`,
   prep: `Hey crew — prep starts {dates} at {address} for {client_name}. Plan to set forms + rebar. Let me know when you're on site.`,
-  pour: `Pour day scheduled {dates} at {address} for {client_name}. {service_type}. Willy Roger Michael — confirm truck times when we lock the dispatcher.`,
+  pour: `Pour day scheduled {dates} at {address} for {client_name}. {service_type}. Willy and Michael — confirm truck times when we lock the dispatcher.`,
   cleanup: `Cleanup at {address} on {dates} — strip forms, haul debris, site broom-clean. Text me when it's buttoned up.`,
 };
 
