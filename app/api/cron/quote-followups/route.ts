@@ -72,18 +72,18 @@ export async function GET(request: NextRequest) {
       stages.push({
         stage: "quote_followup_1",
         needsSms: true,
-        body: `Hi ${firstName(
+        body: `${firstName(
           client.name
-        )} — Rose Concrete here. Just checking in on quote #${q.number}. Any questions? Reply here and I'll jump on it.`,
+        )}, Rose Concrete here. Just checking in on quote #${q.number}. Any questions? Reply here and I'll jump on it.`,
       });
     }
     if (ageDays >= secondDays && ageDays < coldDays) {
       stages.push({
         stage: "quote_followup_2",
         needsSms: true,
-        body: `Hi ${firstName(
+        body: `${firstName(
           client.name
-        )} — still happy to answer questions on quote #${q.number}. If the timing isn't right just let me know and I'll stop bugging you.`,
+        )}, still happy to answer questions on quote #${q.number}. If the timing isn't right just let me know and I'll stop bugging you.`,
       });
     }
     if (ageDays >= coldDays) {
