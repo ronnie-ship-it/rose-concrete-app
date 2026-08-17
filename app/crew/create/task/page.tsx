@@ -9,6 +9,7 @@ import {
   SectionSpacer,
 } from "../chrome";
 import { ClientPickerRow, TeamPickerRow } from "../shared";
+import { PreserveDraft } from "../preserve-draft";
 
 export const metadata = { title: "New task — Rose Concrete" };
 
@@ -62,12 +63,20 @@ export default async function CrewNewTask({
     }
   }
 
+  // Return paths that carry the *other* already-made pick, so hopping
+  // to a second picker (e.g. team after client) doesn't drop the first.
+  // Typed fields are preserved separately by <PreserveDraft>.
+  const clientRet = `/crew/create/task${userId ? `?user_id=${userId}` : ""}`;
+  const teamRet = `/crew/create/task${clientId ? `?client_id=${clientId}` : ""}`;
+
   return (
     <CrewCreateChrome
       title="New task"
       saveLabel="Save"
       formAction={createTaskFromCrewAction}
     >
+      <PreserveDraft formKey="task" restore={Boolean(clientId || userId)} />
+
       {sp.error && (
         <p className="mx-4 mt-4 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
           {sp.error}
@@ -80,7 +89,7 @@ export default async function CrewNewTask({
 
       <SectionSpacer />
 
-      <ClientPickerRow ret="/crew/create/task" prefilled={client} />
+      <ClientPickerRow ret={clientRet} prefilled={client} />
 
       <SectionSpacer />
 
@@ -104,7 +113,7 @@ export default async function CrewNewTask({
         </div>
       </div>
 
-      <TeamPickerRow ret="/crew/create/task" prefilled={teamMember} />
+      <TeamPickerRow ret={teamRet} prefilled={teamMember} />
     </CrewCreateChrome>
   );
 }
