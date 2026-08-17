@@ -365,8 +365,8 @@ export async function createLead(
             // concatenates on the recipient side, so the lead sees one
             // message. (Roger reference removed 2026-08-15 — no longer
             // with the company.)
-            `Hi ${firstName}, this is Ronnie with Rose Concrete. Got your ` +
-              `request — I'll call as soon as I can. If you need to reach me ` +
+            `${firstName}, this is Ronnie with Rose Concrete. Got your ` +
+              `request and I'll call as soon as I can. If you need to reach me ` +
               `sooner, my number is (619) 537-9408. In the meantime, if you ` +
               `haven't already, go ahead and send over some photos and a ` +
               `brief description of the project.`,
